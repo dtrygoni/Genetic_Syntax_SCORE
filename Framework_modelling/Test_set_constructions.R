@@ -1,5 +1,4 @@
 ##Libraries
-library(missForestPredict)
 library(Boruta)
 library(caret)
 library(caret)
@@ -208,8 +207,8 @@ Preprocessing_fnc_count<-function(clinical_train,clinical_test,snp_train,snp_tes
 
 
 ########## Construction of full test sets ########
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Whole_dataset.Rda')
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Test_inds.Rda')
+load('./Whole_dataset.Rda')
+load('./Test_inds.Rda')
 test_cases_ls<-list()
 for(jj in 1:10){
   dt<-dataset[list_indexes_test[[jj]],]
@@ -222,9 +221,9 @@ for(jj in 1:10){
 test_zero_clinical_ls<-list()
 test_zero_snp_ls<-list()
 ### Clinical
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Test_clinical_CV_BA_DM.Rda')
+load('./Test_clinical_CV_BA_DM.Rda')
 ### SNP
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Test_snp_CV_BA_DM.Rda')
+load('./Test_snp_CV_BA_DM.Rda')
 for(jj in 1:10){
   orig<-test_cases_ls[[jj]]
   
@@ -244,9 +243,9 @@ for(jj in 1:10){
 test_count_clinical_ls<-list()
 test_count_snp_ls<-list()
 ### Clinical
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Test_clinical_CV_BA_DM.Rda')
+load('./Test_clinical_CV_BA_DM.Rda')
 ### SNP
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Test_snp_CV_BA_DM.Rda')
+load('./Test_snp_CV_BA_DM.Rda')
 for(jj in 1:10){
   orig<-test_cases_ls[[jj]]
   
@@ -279,7 +278,7 @@ for(jj in 1:10){
 new_test_snp_ls<-list()
 new_train_snp_ls<-list()
 for(jj in 1:10){
-  load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Whole_dataset.Rda')
+  load('./Whole_dataset.Rda')
   train_jj<-dataset[-list_indexes_test[[jj]],]
   train_zero<-train_jj[ colnames(train_jj)%in%colnames(test_zero_snp_ls[[jj]])]
   
@@ -331,7 +330,7 @@ train_zero_snp_ls<-new_train_snp_ls
 new_test_snp_ls<-list()
 new_train_snp_ls<-list()
 for(jj in 1:10){
-  load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Whole_dataset.Rda')
+  load('./Whole_dataset.Rda')
   train_jj<-dataset[-list_indexes_test[[jj]],]
   train_count<-train_jj[ colnames(train_jj)%in%colnames(test_count_snp_ls[[jj]])]
   train_count<-train_count[train_count$SYNTAX.SCORE>0,]
@@ -442,7 +441,7 @@ interaction_analysis <-function(train,test){
   
 }
 for(jj in 1:10){
-  load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Whole_dataset.Rda')
+  load('./Whole_dataset.Rda')
   clinical_train_zero<-dataset[-list_indexes_test[[jj]],]
   clinical_test_zero<-test_zero_clinical_ls[[jj]]
   clinical_train_zero<-clinical_train_zero[colnames(clinical_train_zero) %in% colnames(clinical_test_zero)]
@@ -472,7 +471,7 @@ for(jj in 1:10){
   
   
   
-  load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Whole_dataset.Rda')
+  load('./Whole_dataset.Rda')
   clinical_train_count<-dataset[-list_indexes_test[[jj]],]
   clinical_test_count<-test_count_clinical_ls[[jj]]
   clinical_train_count<-clinical_train_count[colnames(clinical_train_count) %in% colnames(clinical_test_count)]
@@ -500,18 +499,18 @@ for(jj in 1:10){
 
 
 
-save(final_test_clinical_zero_ls,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Zero_part/Clinical_test.Rda')
-save(final_test_snp_zero_ls,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Zero_part/SNP_test.Rda')
+save(final_test_clinical_zero_ls,file='./Zero_part/Clinical_test.Rda')
+save(final_test_snp_zero_ls,file='./Zero_part/SNP_test.Rda')
 
-save(final_test_clinical_count_ls,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Count_part/Clinical_test.Rda')
-save(final_test_snp_count_ls,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Count_part/SNP_test.Rda')
+save(final_test_clinical_count_ls,file='./Count_part/Clinical_test.Rda')
+save(final_test_snp_count_ls,file='./Count_part/SNP_test.Rda')
 
 
 
 
 
 ######## Model check
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Extra/Models_RF_AUC_None.Rda')
+load('./Models_RF_AUC_None.Rda')
 model<-final_models$SNP_RF_2
 test<-final_test_snp_zero_ls[[2]]
 test<-test[complete.cases(test),]
@@ -524,9 +523,10 @@ predict(model,test)
 
 
 
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Predictors/Predictors_count_snp.Rda')
+load('./Predictors_count_snp.Rda')
 table(predictors_count_snp)
 
 
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Predictors/Predictors_zero_snp.Rda')
+load('./Predictors_zero_snp.Rda')
 table(predictors_zero_snp)
+
