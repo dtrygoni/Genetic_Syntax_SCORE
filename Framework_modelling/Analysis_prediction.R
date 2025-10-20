@@ -1,9 +1,9 @@
 ################## Regression result evaluation --- Wilcoxon, Multiclassification ##############
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Results/Clinical_predictions.Rda')
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Results/Clinical_target.Rda')
+load('./Clinical_predictions.Rda')
+load('./Clinical_target.Rda')
 
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Results/SNP_predictions.Rda')
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Results/SNP_target.Rda')
+load('./SNP_predictions.Rda')
+load('./SNP_target.Rda')
 
 
 res_all<-NULL
@@ -26,7 +26,7 @@ for(name in names(predictions_cl_all)){
   df<-data.frame(Optimization=c(name_spl[2]),Resampling=c(name_spl[3]),MedAE.Clinical=med_cl,MedAE.SNP=med_snp,Wilc.p.val=res$p.value)
   res_all<-rbind(res_all,df)
 }
-save(res_all,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Results/Wilcoxon_results_Alltogether.Rda')
+save(res_all,file='./Wilcoxon_results_Alltogether.Rda')
 conf_matrix_list<-list()
 for(name in names(predictions_cl_all)){
   predictions_cl<-predictions_cl_all[[name]]
@@ -50,7 +50,7 @@ for(name in names(predictions_cl_all)){
   conf_matrix_list[[name]]<-cli_cm
   conf_matrix_list[[name_snp]]<-snp_cm
 }
-save(conf_matrix_list,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Results/ConfusionMatrix_results_Alltogether_3class.Rda')
+save(conf_matrix_list,file='./ConfusionMatrix_results_Alltogether_3class.Rda')
 
 
 conf_matrix_list4<-list()
@@ -76,7 +76,8 @@ for(name in names(predictions_cl_all)){
   conf_matrix_list4[[name]]<-cli_cm
   conf_matrix_list4[[name_snp]]<-snp_cm
 }
-save(conf_matrix_list4,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Results/ConfusionMatrix_results_Alltogether_4class.Rda')
+save(conf_matrix_list4,file='./ConfusionMatrix_results_Alltogether_4class.Rda')
+
 
 
 
