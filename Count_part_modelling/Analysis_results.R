@@ -4,9 +4,9 @@ library(MLmetrics)
 
 
 ###### load models/tests
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Extra/Classifier_Models.Rda')
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Extra/Test_sets.Rda')
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Extra/Train_sets.Rda')
+load('./Classifier_Models.Rda')
+load('./Test_sets.Rda')
+load('./Train_sets.Rda')
 
 
 
@@ -49,7 +49,7 @@ for(i in names(test_list)){
   spec_arr<-c(spec_arr,spec)
   }
 df<-data.frame(Type=type_arr,Optimization=opt_arr,Resampling=resamp_arr,Fold=fold_arr,`Balanced Accuracy`=balAcc_arr,Sensitivity=sens_arr,Specificity=spec_arr)
-save(df,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Results/Classifier_results_per_fold.Rda')
+save(df,file='./Classifier_results_per_fold.Rda')
 
 types<-unique(type_arr)
 optimizations<-unique(opt_arr)
@@ -82,15 +82,15 @@ for(type in types){
     }
   }
 }
-save(confusion_matrices,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Results/Classifier_results_confusion_matrices_allfolds.Rda')
+save(confusion_matrices,file='./Classifier_results_confusion_matrices_allfolds.Rda')
 
 
 
 
 ################################## Regressors
 ##########Low
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Extra/Regression_Clinical_Low_Models.Rda')
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Extra/Regression_SNP_Low_Models.Rda')
+load('./Regression_Clinical_Low_Models.Rda')
+load('./Regression_SNP_Low_Models.Rda')
 clinical_names<-c()
 snp_names<-c()
 for(resamp in resamplings){
@@ -155,10 +155,10 @@ for(resamp in resamplings){
   res_low<-rbind(res_low,df)
                  
 }
-save(res_low,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Results/Wilcoxon_results_Regression_low.Rda')
+save(res_low,file='./Wilcoxon_results_Regression_low.Rda')
 ######### High
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Extra/Regression_Clinical_High_Models.Rda')
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Extra/Regression_SNP_High_Models.Rda')
+load('./Regression_Clinical_High_Models.Rda')
+load('./Regression_SNP_High_Models.Rda')
 res_high<-NULL
 for(resamp in resamplings){
   target_clinical<-c()
@@ -208,7 +208,7 @@ for(resamp in resamplings){
   res_high<-rbind(res_high,df)
   
 }
-save(res_high,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Results/Wilcoxon_results_Regression_High.Rda')
+save(res_high,file='./Wilcoxon_results_Regression_High.Rda')
 
 
 
@@ -285,7 +285,8 @@ for(opt in optimizations){
       res_all<-rbind(res_all,df)
     }
   }
-save(res_all,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Results/Wilcoxon_results_Regression_All.Rda')
+save(res_all,file='./Wilcoxon_results_Regression_All.Rda')
+
 
 
 
