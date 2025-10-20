@@ -31,12 +31,9 @@ aucpr_arr<-c()
 aucroc_arr<-c()
 fold_arr<-c()
 final_models<-list()
-###### load
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Whole_dataset.Rda')
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Train_clinical_CV_BA_DM.Rda')
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Test_clinical_CV_BA_DM.Rda')
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Train_snp_CV_BA_DM.Rda')
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Test_snp_CV_BA_DM.Rda')
+
+###### load yours results
+
 
 ##### Functions
 ### Helper functions
@@ -1019,19 +1016,19 @@ for(jj in 1:10){
   res_all<-rbind(res_all,res)
   
   
-  str_models<-paste0('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Extra/Models_RF_',metric,'_',samp,'.Rda')
+  str_models<-paste0('./Extra/Models_RF_',metric,'_',samp,'.Rda')
   save(final_models,file=str_models)
   
-  str_train_clinical<-paste0('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Extra/Train_clinical_',metric,'_',samp,'.Rda')
+  str_train_clinical<-paste0('./Extra/Train_clinical_',metric,'_',samp,'.Rda')
   save(train_clinical_list,file=str_train_clinical)
   
-  str_test_clinical<-paste0('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Extra/Test_clinical_',metric,'_',samp,'.Rda')
+  str_test_clinical<-paste0('./Extra/Test_clinical_',metric,'_',samp,'.Rda')
   save(test_clinical_list,file=str_test_clinical)
   
-  str_train_snp<-paste0('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Extra/Train_SNP_',metric,'_',samp,'.Rda')
+  str_train_snp<-paste0('./Extra/Train_SNP_',metric,'_',samp,'.Rda')
   save(train_snp_list,file=str_train_snp)
   
-  str_test_snp<-paste0('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Extra/Test_SNP_',metric,'_',samp,'.Rda')
+  str_test_snp<-paste0('./Extra/Test_SNP_',metric,'_',samp,'.Rda')
   save(test_snp_list,file=str_test_snp)
 }
 }
@@ -1055,39 +1052,11 @@ for(name in names(delong_p)){
 }
 
 df<-data.frame(Model=names(delong_p),AUC.Clinical=AUC_clinical,AUC.SNP=AUC_SNP,Statistic=statistic,CI.Low=CI_low,CI.High=CI_high,P.value=p_val)
-save(df,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Results/Delong_results_RF.Rda')
-save(res_all,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Results/Classifier_results_RF.Rda')
+save(df,file='./Results/Delong_results_RF.Rda')
+save(res_all,file='./Results/Classifier_results_RF.Rda')
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-############## Previous #############################
-res<-data.frame(Model=model_arr,Data_Type=type_arr,Fold=fold_arr,Accuracy=acc_arr,Precision=prec_arr,
-                Recall=rec_arr,F1=f1_arr,AUCROC=aucroc_arr,AUCPR=aucpr_arr)
-save(res,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/results_RF_OH_Sens.Rda')
-
-
-roc1 <- roc(clinical_target,clinical_probs)
-roc2 <- roc(snp_target,snp_probs)
-######## Delong
-res<-roc.test(roc1,roc2,method="delong")
-save(res,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Delong_results_RF_OH_F05.Rda')
-save(final_models,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Models_XG_OH_F2.Rda')
-####### Bootstrap
-res<-roc.test(roc1,roc2,method="bootstrap")
 
 
