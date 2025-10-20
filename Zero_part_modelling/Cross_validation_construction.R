@@ -1,9 +1,7 @@
 
 ###################################### Before splitting all-procedure to test multiple splits ############################
 ##Libraries
-library(missForestPredict)
 library(Boruta)
-library(caret)
 library(caret)
 library(ggplot2)
 library(dplyr)
@@ -43,9 +41,7 @@ predictors_snp_ls<-list()
 
 
 
-###### load
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Whole_dataset.Rda')
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Test_inds.Rda')
+###### load dataset and CV indices
 
 dataset<-dataset[!is.na(dataset$SYNTAX.SCORE),]
 dataset_positive<-dataset[dataset$SYNTAX.SCORE>0,]
@@ -749,10 +745,10 @@ for(jj in 1:10){
 }
 
 
-save(train_clinical_ls,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Train_clinical_CV_BA_DM.Rda')
-save(test_clinical_ls,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Test_clinical_CV_BA_DM.Rda')
-save(train_snp_ls,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Train_snp_CV_BA_DM.Rda')
-save(test_snp_ls,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Test_snp_CV_BA_DM.Rda')
+save(train_clinical_ls,file='./Train_clinical_CV_BA_DM.Rda')
+save(test_clinical_ls,file='./Test_clinical_CV_BA_DM.Rda')
+save(train_snp_ls,file='./Train_snp_CV_BA_DM.Rda')
+save(test_snp_ls,file='./Test_snp_CV_BA_DM.Rda')
 
 
 
@@ -792,8 +788,8 @@ for(jj in 1:10){
 }
 
 
-names_all<-names(table(snp_predictors_all))
-table(snp_predictors_all)['rs2306374' == names_all]
+
+
 
 
 
