@@ -2,12 +2,12 @@
 library(caret)
 library(PRROC)
 library(pROC)
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Extra/Models_RF_AUC_None.Rda')
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Extra/Test_clinical_AUC_None.Rda')
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Extra/Train_clinical_AUC_None.Rda')
+load('./Models_RF_AUC_None.Rda')
+load('./Test_clinical_AUC_None.Rda')
+load('./Train_clinical_AUC_None.Rda')
 
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Extra/Test_snp_AUC_None.Rda')
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Extra/Train_snp_AUC_None.Rda')
+load('./Test_snp_AUC_None.Rda')
+load('./Train_snp_AUC_None.Rda')
 
 
 test_all<-c()
@@ -92,7 +92,7 @@ for(fold in 1:10){
   pr_snp<-c(pr_snp,round(as.numeric(pr_sn$auc.integral),3))
   }
 AUC_per_fold<-data.frame(Fold=1:10,AUCROC.Clinical=rocs_clinical,AUCROC.SNP=rocs_snp,AUCPR.Clinical=pr_clinical,AUCPR.SNP=pr_snp)
-save(AUC_per_fold,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Results/AUC_per_fold.Rda')
+save(AUC_per_fold,file='./Results/AUC_per_fold.Rda')
 #libraries
 library(PRROC)
 
@@ -219,113 +219,6 @@ roc22<-pROC::roc(test_all,probs_snp)
 pROC::ci.auc(roc22,method="bootstrap")
 
 
-source('C:/Users/30697/Desktop/Project_Indices/Code/pr_test.R')
-res<-pr.test(test_all,probs_clinical,probs_snp,boot.n=2000)
-
-
-library(precrec)
-class <- test_all
-prob <- probs_clinical
-
-inds<-seq(1, 799, by = 158)-1
-inds1<-1:inds[2]
-
-next_index<-inds[2]+1
-inds2<-next_index:inds[3]
-
-
-next_index<-inds[3]+1
-inds3<-next_index:inds[4]
-
-next_index<-inds[4]+1
-inds4<-next_index:inds[5]
-
-next_index<-inds[5]+1
-inds5<-next_index:inds[6]
-
-next_index<-inds[6]+1
-inds6<-next_index:inds[7]
-
-next_index<-inds[7]+1
-inds7<-next_index:inds[8]
-
-next_index<-inds[8]+1
-inds8<-next_index:inds[9]
-
-next_index<-inds[9]+1
-inds9<-next_index:inds[10]
-
-next_index<-inds[10]+1
-inds10<-next_index:inds[11]
-
-
-ind<-list(inds1,inds2,inds3,inds4,inds5)#,inds6,inds7,inds8,inds9,inds10)
-
-scores1<-prob[inds1]
-labels1<-class[inds1]
-
-scores2<-prob[inds2]
-labels2<-class[inds2]
-
-scores3<-prob[inds3]
-labels3<-class[inds3]
-
-
-scores4<-prob[inds4]
-labels4<-class[inds4]
-
-
-scores5<-prob[inds5]
-labels5<-class[inds5]
-
-scores6<-prob[inds6]
-labels6<-class[inds6]
-
-scores7<-prob[inds7]
-labels7<-class[inds7]
-
-scores8<-prob[inds8]
-labels8<-class[inds8]
-
-scores9<-prob[inds9]
-labels9<-class[inds9]
-
-#scores10<-prob[inds10]
-#labels10<-class[inds10]
-
-scores<-join_scores(scores1,scores2,scores3,scores4,scores5)
-#,
-                    #scores6,scores7,scores8,scores9)#,scores10)
-labels<-join_labels(labels1,labels2,labels3,labels4,labels5)
-#,
-                    #labels6,labels7,labels8,labels9)#,labels10)
-
-
-
-# Create the mmdata object
-mdat <- mmdata(scores, labels, dsids = c(1,2,3,4,5))#,6,7,8,9))#,10))
-curves<-evalmod(mdat)
-r<-auc_ci(curves,alpha=0.05)
-r
-
-
-############## Per fold ##############
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Results/Classifier_results_RF.Rda')
-
-
-wanted<-res_all[res_all$Sampling=='None',]
-wanted_1<-wanted[21:40,]
-median(wanted_1[wanted_1$Data_Type=='Clinical','Precision'])
-
-median(wanted_1[wanted_1$Data_Type=='ClinicalSNP','Precision'])
-
-
-
-
-
-
-
-
 
 ################# Boruta selected ####################
 all_clinical<-c()
@@ -346,7 +239,7 @@ unique(all_clinical)
 
 
 
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Extra/Train_sets.Rda')
+load('./Train_sets.Rda')
 all_clinical<-c()
 all_snp<-c()
 predicted<-list()
@@ -362,4 +255,5 @@ for(fold in 1:10){
 }
 
 unique(all_clinical)
+
 
