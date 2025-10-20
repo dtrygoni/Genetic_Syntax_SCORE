@@ -7,7 +7,7 @@ This repository contains the implementation of the GEnetic SYNTAX Score (GESS) f
 
 The code supports the full modeling pipeline, including data preprocessing, feature selection, cross-validation experiments, and the final trained model for practical use.
 
-Repository Structure
+# Repository Structure
 
 Framework_modelling – End-to-end ML workflow integrating preprocessing, feature selection, model training, and performance evaluation.
 Zero_part_modelling – Classification component predicting the presence of obstructive CAD (SYNTAX score = 0 vs >0).
@@ -16,7 +16,7 @@ GESS_model – Final fitted model(s) and wrapper functions for direct prediction
 Utils – Utility scripts for data handling, feature encoding, performance metrics, and visualization (ROC, PR, SHAP).
 results – Folder to store output figures, metrics, and validation results (optional).
 
-Requirements
+# Requirements
 
 The project is implemented in R (version 4.2 or later).
 
@@ -28,7 +28,7 @@ pkgs <- c("caret","pROC","Boruta","lme4","lmerTest","emmeans","SNPassoc","kernel
 inst <- pkgs[!pkgs %in% installed.packages()[,"Package"]]
 if(length(inst)) install.packages(inst, dependencies = TRUE)
 
-Data
+# Data
 
 The workflow expects two data sources:
 
@@ -39,7 +39,7 @@ Genomic data (SNP genotypes) after quality control (HWE, MAF, LD filtering)
 Create a local folder named data (not tracked in GitHub) and place your input files there.
 Paths can be specified at the beginning of each script.
 
-How to Run the Experiments
+# How to Run the Experiments
 
 Step 1. Preprocessing and setup
 Run the main scripts in Framework_modelling to clean, normalize, and encode data for both clinical and genomic predictors.
@@ -62,7 +62,7 @@ Applies Boruta feature selection and permutation testing for model comparison
 Step 3. Review results
 All output figures, metrics, and SHAP summaries are saved to the results folder.
 
-Using the Final Model
+# Using the Final Model
 
 You can use the trained model in the GESS_model folder to make predictions on new patients.
 
@@ -89,6 +89,6 @@ Intermediate/high risk: clinical model remained more stable.
 
 SHAP-based explainability identified both clinical and genetic predictors influencing model decisions.
 
-Citation
+# Citation
 
 If you use or adapt this code, please cite the corresponding publication: XXX (ClinicalTrials.gov Identifier: NCT03150680)
