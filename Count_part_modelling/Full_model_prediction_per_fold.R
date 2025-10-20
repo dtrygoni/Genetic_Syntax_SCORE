@@ -27,8 +27,8 @@ for(name in names_snp){
   
 }
 
-save(predictors_zero_clinical,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Predictors/Predictors_zero_clinical.Rda')
-save(predictors_zero_snp,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Predictors/Predictors_zero_SNP.Rda')
+save(predictors_zero_clinical,file='./Predictors_zero_clinical.Rda')
+save(predictors_zero_snp,file='./Predictors_zero_SNP.Rda')
 
 names_clinical<-c()
 names_snp<-c()
@@ -54,17 +54,17 @@ for(name in names_snp){
   predictors_count_snp<-c(predictors_count_snp,predictors_arr)
   
 }
-save(predictors_count_clinical,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Predictors/Predictors_count_clinical.Rda')
-save(predictors_count_snp,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Predictors/Predictors_count_SNP.Rda')
+save(predictors_count_clinical,file='./Predictors_count_clinical.Rda')
+save(predictors_count_snp,file='./Predictors_count_SNP.Rda')
 
 ####### Load models 
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Extra/Models_RF_AUC_None.Rda')
+load('./Models_RF_AUC_None.Rda')
 zero_models<-final_models
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Extra/Classifier_Models.Rda')
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Extra/Regression_Clinical_High_Models.Rda')
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Extra/Regression_SNP_High_Models.Rda')
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Extra/Regression_Clinical_Low_Models.Rda')
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Extra/Regression_SNP_Low_Models.Rda')
+load('./Classifier_Models.Rda')
+load('./Regression_Clinical_High_Models.Rda')
+load('./Regression_SNP_High_Models.Rda')
+load('./Regression_Clinical_Low_Models.Rda')
+load('./Regression_SNP_Low_Models.Rda')
 count_classifiers<-classifier_models
 count_regressor_low_cl<-regression_cl_model_low
 count_regressor_high_cl<-regression_cl_model_high
@@ -75,11 +75,11 @@ count_regressor_high_snp<-regression_snp_model_high
 #count_scale<-'log'
 #count_metric<-'MAE'
 ####### Load tests
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Zero_part/Clinical_test.Rda')
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Zero_part/SNP_test.Rda')
+load('./Zero_part/Clinical_test.Rda')
+load('./Zero_part/SNP_test.Rda')
 
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Count_part/Clinical_test.Rda')
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Count_part/SNP_test.Rda')
+load('./Count_part/Clinical_test.Rda')
+load('./Count_part/SNP_test.Rda')
 
 
 
@@ -414,3 +414,4 @@ df_soft$AE.SNP<-ae_snp
 
 median(df_soft$AE.Clinical) #7.69
 median(df_soft$AE.SNP) #8.0475
+
