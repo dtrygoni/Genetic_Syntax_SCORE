@@ -1,6 +1,5 @@
 ############################################## Model training -- Count Part Random Forest Classifier / Regressors ########################
 ##Libraries
-library(missForestPredict)
 library(Boruta)
 library(caret)
 library(caret)
@@ -32,14 +31,14 @@ final_models<-list()
 train_list<-list()
 test_list<-list()
 ###### load
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Train_clinical_CV_BA_DM.Rda')
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Test_clinical_CV_BA_DM.Rda')
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Train_snp_CV_BA_DM.Rda')
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Test_snp_CV_BA_DM.Rda')
+load('./Train_clinical_CV_BA_DM.Rda')
+load('./Test_clinical_CV_BA_DM.Rda')
+load('./Train_snp_CV_BA_DM.Rda')
+load('./Test_snp_CV_BA_DM.Rda')
 
-path_resampling<-'C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Prev/Cross_validation_experiments_Count_Classifier/Resampling_script.py'
-library(reticulate)
-reticulate::source_python(path_resampling)
+#path_resampling<-'./Resampling_script.py'
+#library(reticulate)
+#reticulate::source_python(path_resampling)
 ##### Functions
 ### Helper functions
 summary_fnc <- function(data, lev = NULL, model = NULL) {
@@ -1180,9 +1179,9 @@ for(resamp in resampling){
 
 
 
-save(classifier_models,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Extra/Classifier_Models.Rda')
-save(train_list,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Extra/Train_sets.Rda')
-save(test_list,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Extra/Test_sets.Rda')
+save(classifier_models,file='./Classifier_Models.Rda')
+save(train_list,file='./Train_sets.Rda')
+save(test_list,file='./Test_sets.Rda')
 
 
 clinical_names<-c()
@@ -1250,7 +1249,8 @@ for(i in 1:length(clinical_names)){
   
   }
 
-save(regression_cl_model_low,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Extra/Regression_Clinical_Low_Models.Rda')
-save(regression_snp_model_low,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Extra/Regression_SNP_Low_Models.Rda')
-save(regression_cl_model_high,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Extra/Regression_Clinical_High_Models.Rda')
-save(regression_snp_model_high,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Extra/Regression_SNP_High_Models.Rda')
+save(regression_cl_model_low,file='./Regression_Clinical_Low_Models.Rda')
+save(regression_snp_model_low,file='./Regression_SNP_Low_Models.Rda')
+save(regression_cl_model_high,file='./Regression_Clinical_High_Models.Rda')
+save(regression_snp_model_high,file='./Regression_SNP_High_Models.Rda')
+
