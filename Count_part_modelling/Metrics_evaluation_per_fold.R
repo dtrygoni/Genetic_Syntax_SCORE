@@ -1,4 +1,4 @@
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/New folder/DataFrame_AE_Hard.Rda')
+load('./DataFrame_AE_Hard.Rda')
 
 library(caret)
 
@@ -8,21 +8,21 @@ median(ae_hard_df[ae_hard_df$Resampling=='None','SNP'])
 ## AE hard clinical (6.905 ) SNP (6.9075)
 
 
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/New folder/DataFrame_RAE_Hard.Rda')
+load('./DataFrame_RAE_Hard.Rda')
 median(rae_hard_df[rae_hard_df$Resampling=='None','Clinical'])
 median(rae_hard_df[rae_hard_df$Resampling=='None','SNP'])
 ## RAE hard clinical (0.4825 ) SNP (0.492)
 
 
 
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/New folder/DataFrame_AE_Soft.Rda')
+load('./DataFrame_AE_Soft.Rda')
 median(ae_soft_df[ae_soft_df$Resampling=='None','Clinical'])
 median(ae_soft_df[ae_soft_df$Resampling=='None','SNP'])
 ##AE hard clinical (7.0795 ) SNP (7.2485)
 
 
 
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/New folder/DataFrame_RAE_Soft.Rda')
+load('./DataFrame_RAE_Soft.Rda')
 median(rae_soft_df[rae_soft_df$Resampling=='None','Clinical'])
 median(rae_soft_df[rae_soft_df$Resampling=='None','SNP'])
 ##AE hard clinical (0.4125 ) SNP (0.4455)
@@ -508,3 +508,4 @@ median(abs(target_all-snp_preds)) #7.35
 
 median(abs(target_all-clinical_preds)/target_all) #0.457
 median(abs(target_all-snp_preds)/target_all) #0.459
+
