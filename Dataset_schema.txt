@@ -1,0 +1,137 @@
+Gender:
+  type: factor
+  levels: ["0", "1"]
+  description: "0 = Female, 1 = Male"
+
+HYPERTENSION:
+  type: factor
+  levels: ["0", "1"]
+  description: "0 = No, 1 = Yes"
+
+DIABETES MELLITUS:
+  type: factor
+  levels: ["0", "1"]
+  description: "0 = No, 1 = Yes"
+
+SMOKING:
+  type: factor
+  levels: ["0", "1"]
+  description: "0 = No, 1 = Yes"
+
+AUTOIMMUNE DISEASE:
+  type: factor
+  levels: ["0", "1"]
+  description: "0 = No, 1 = Yes"
+
+ATRIAL FIBRILLATION:
+  type: factor
+  levels: ["0", "1"]
+  description: "0 = No, 1 = Yes"
+
+CHEST PAIN:
+  type: factor
+  levels: ["0", "1"]
+  description: "0 = No, 1 = Yes"
+
+CRUSADE SCORE:
+  type: numeric
+  units: "score"
+  description: "Bleeding risk score"
+
+QRS DURATION ms:
+  type: numeric
+  units: "milliseconds"
+  description: "QRS complex duration in ECG"
+
+GLU:
+  type: numeric
+  units: "mg/dL"
+  description: "Blood glucose"
+
+UREA:
+  type: numeric
+  units: "mg/dL"
+  description: "Blood urea"
+
+NEU%:
+  type: numeric
+  units: "%"
+  description: "Neutrophil percentage"
+
+EOS%:
+  type: numeric
+  units: "%"
+  description: "Eosinophil percentage"
+
+BASO%:
+  type: numeric
+  units: "%"
+  description: "Basophil percentage"
+
+MPV:
+  type: numeric
+  units: "fL"
+  description: "Mean platelet volume"
+
+GALECTIN:
+  type: numeric
+  units: "ng/mL"
+  description: "Galectin level"
+
+RATIO1:
+  type: numeric
+  description: "Custom calculated ratio 1"
+
+RATIO3:
+  type: numeric
+  description: "Custom calculated ratio 3"
+
+RATIO4:
+  type: numeric
+  description: "Custom calculated ratio 4"
+
+ATYPICAL ANGINA SYMPTOMS:
+  type: factor
+  levels: ["0", "1"]
+  description: "0 = No, 1 = Yes"
+
+Binary SS:
+  type: factor
+  levels: ["0", "1"]
+  description: "Binary stenosis score"
+
+rs11984041:
+  type: factor
+  levels: ["CC", "CT", "TT"]
+
+rs1330344:
+  type: factor
+  levels: ["CC", "CT", "TT"]
+
+rs2023938:
+  type: factor
+  levels: ["CC", "TC", "TT"]
+
+rs2107595:
+  type: factor
+  levels: ["AA", "GA", "GG"]
+
+rs2487928:
+  type: factor
+  levels: ["AA", "GA", "GG"]
+
+rs25882:
+  type: factor
+  levels: ["CC", "TC", "TT"]
+
+rs4845625:
+  type: factor
+  levels: ["CC", "TC", "TT"]
+
+rs663129:
+  type: factor
+  levels: ["AA", "GA", "GG"]
+
+rs6689306:
+  type: factor
+  levels: ["AA", "AG", "GG"]
