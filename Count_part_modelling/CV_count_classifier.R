@@ -1,6 +1,5 @@
 ###################################### Cross validation for Count_part Classifier ############################
 ##Libraries
-library(missForestPredict)
 library(Boruta)
 library(caret)
 library(caret)
@@ -42,8 +41,8 @@ predictors_snp_ls<-list()
 
 
 ###### load
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Whole_dataset.Rda')
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Test_inds.Rda')
+load('./Whole_dataset.Rda')
+load('./Test_inds.Rda')
 
 
 ##### Functions
@@ -697,10 +696,10 @@ for(jj in 1:10){
 }
 
 
-save(train_clinical_ls,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Train_clinical_CV_BA_DM.Rda')
-save(test_clinical_ls,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Test_clinical_CV_BA_DM.Rda')
-save(train_snp_ls,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Train_snp_CV_BA_DM.Rda')
-save(test_snp_ls,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Test_snp_CV_BA_DM.Rda')
+save(train_clinical_ls,file='./Train_clinical_CV_BA_DM.Rda')
+save(test_clinical_ls,file='./Test_clinical_CV_BA_DM.Rda')
+save(train_snp_ls,file='./Train_snp_CV_BA_DM.Rda')
+save(test_snp_ls,file='./Test_snp_CV_BA_DM.Rda')
 
 
 
@@ -738,6 +737,7 @@ for(jj in 1:10){
   snp_predictors_all<-c(snp_predictors_all,snp_predictors)
   
 }
+
 
 
 
