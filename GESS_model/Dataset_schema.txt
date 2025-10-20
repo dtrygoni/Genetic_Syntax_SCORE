@@ -134,4 +134,5 @@ rs663129:
 
 rs6689306:
   type: factor
+
   levels: ["AA", "AG", "GG"]
