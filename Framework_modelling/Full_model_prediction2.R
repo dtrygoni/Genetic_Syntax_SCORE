@@ -29,8 +29,8 @@ for(name in names_snp){
   
 }
 
-save(predictors_zero_clinical,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Predictors/Predictors_zero_clinical.Rda')
-save(predictors_zero_snp,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Predictors/Predictors_zero_SNP.Rda')
+save(predictors_zero_clinical,file='./Predictors_zero_clinical.Rda')
+save(predictors_zero_snp,file='./Predictors_zero_SNP.Rda')
 
 names_clinical<-c()
 names_snp<-c()
@@ -56,17 +56,17 @@ for(name in names_snp){
   predictors_count_snp<-c(predictors_count_snp,predictors_arr)
   
 }
-save(predictors_count_clinical,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Predictors/Predictors_count_clinical.Rda')
-save(predictors_count_snp,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Predictors/Predictors_count_SNP.Rda')
+save(predictors_count_clinical,file='./Predictors_count_clinical.Rda')
+save(predictors_count_snp,file='./Predictors_count_SNP.Rda')
 
 ####### Load models 
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Cross_validation_experiments/Extra/Models_RF_AUC_None.Rda')
+load('./Models_RF_AUC_None.Rda')
 zero_models<-final_models
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Extra/Classifier_Models.Rda')
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Extra/Regression_Clinical_High_Models.Rda')
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Extra/Regression_SNP_High_Models.Rda')
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Extra/Regression_Clinical_Low_Models.Rda')
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Extra/Regression_SNP_Low_Models.Rda')
+load('./Classifier_Models.Rda')
+load('./Regression_Clinical_High_Models.Rda')
+load('./Regression_SNP_High_Models.Rda')
+load('./Regression_Clinical_Low_Models.Rda')
+load('./Regression_SNP_Low_Models.Rda')
 count_classifiers<-classifier_models
 count_regressor_low_cl<-regression_cl_model_low
 count_regressor_high_cl<-regression_cl_model_high
@@ -77,11 +77,11 @@ count_regressor_high_snp<-regression_snp_model_high
 #count_scale<-'log'
 #count_metric<-'MAE'
 ####### Load tests
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Zero_part/Clinical_test.Rda')
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Zero_part/SNP_test.Rda')
+load('./Zero_part/Clinical_test.Rda')
+load('./Zero_part/SNP_test.Rda')
 
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Count_part/Clinical_test.Rda')
-load('C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Count_part/SNP_test.Rda')
+load('./Count_part/Clinical_test.Rda')
+load('./Count_part/SNP_test.Rda')
 
 
 
@@ -298,19 +298,19 @@ median(df$Absolute.Error.SNP) #9.02
 
 res<-data.frame(Fold=fold_arr,Clinical.Predicted=predictions_cl_all$Clinical_AUC_None,
                 SNP.Predicted=df$Predicted.Whole.SNP.Hard,Target=target_cl_all$Clinical_AUC_None)
-save(res,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Count_part_classifiers/Full_model.Rda')
+save(res,file='./Count_part_classifiers/Full_model.Rda')
 median(abs(res$Target-res$Clinical.Predicted))
 median(abs(res$Target-res$SNP.Predicted))
 
-save(df,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Results/Dataframe_Hard.Rda')
+save(df,file='./Results/Dataframe_Hard.Rda')
 
 ############# Save results ################
 
-save(predictions_cl_all,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Results/Clinical_predictions_hard.Rda')
-save(target_cl_all,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Results/Clinical_target.Rda')
+save(predictions_cl_all,file='./Results/Clinical_predictions_hard.Rda')
+save(target_cl_all,file='./Results/Clinical_target.Rda')
 
-save(predictions_snp_all,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Results/SNP_predictions_hard.Rda')
-save(target_snp_all,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Results/SNP_target.Rda')
+save(predictions_snp_all,file='./Results/SNP_predictions_hard.Rda')
+save(target_snp_all,file='./Results/SNP_target.Rda')
 
 
 
@@ -495,20 +495,20 @@ df$Relative.Error.Clinical<-abs(df$Actual-df$Predicted.Whole.Clinical.Soft)/df$A
 
 df$Absolute.Error.SNP<-abs(df$Actual-df$Predicted.Whole.SNP.Soft)
 df$Relative.Error.SNP<-abs(df$Actual-df$Predicted.Whole.SNP.Soft)/df$Actual
-save(df,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Results/Dataframe_Soft.Rda')
+save(df,file='./Results/Dataframe_Soft.Rda')
 
-save(res_list,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Results/Results_predictions_allresamplings.Rda')
+save(res_list,file='./Results_predictions_allresamplings.Rda')
 
 
 
 
 ############# Save results ################
 
-save(predictions_cl_all,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Results/Clinical_predictions_soft.Rda')
-save(target_cl_all,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Results/Clinical_target.Rda')
+save(predictions_cl_all,file='./Results/Clinical_predictions_soft.Rda')
+save(target_cl_all,file='./Results/Clinical_target.Rda')
 
-save(predictions_snp_all,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Results/SNP_predictions_soft.Rda')
-save(target_snp_all,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Results/SNP_target.Rda')
+save(predictions_snp_all,file='./Results/SNP_predictions_soft.Rda')
+save(target_snp_all,file='./Results/SNP_target.Rda')
 
 
 
@@ -573,3 +573,4 @@ for(name in names(res_list)){
   wilcoxon_res<-rbind(wilcoxon_res,res_df)
   }
 save(wilcoxon_res,file='C:/Users/30697/Desktop/PhD/Working/Review_ML_SNP/Code/Whole_model_experiments_classifiers/Results/Wilcoxon_Results_allresamplings.Rda')
+
