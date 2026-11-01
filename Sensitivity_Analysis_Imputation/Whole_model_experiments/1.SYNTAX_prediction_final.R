@@ -1,0 +1,570 @@
+######################### Model results ###################
+library(caret)
+library(PRROC)
+library(pROC)
+
+
+##################### Zero-part ############################
+###### load
+load('./Sensitivity_Analysis_Imputation/Zero_non_zero_component/Train_clinical_zero.Rda')
+load('./Sensitivity_Analysis_Imputation/Zero_non_zero_component/Test_clinical_zero.Rda')
+load('./Sensitivity_Analysis_Imputation/Zero_non_zero_component/Train_snp_zero.Rda')
+load('./Sensitivity_Analysis_Imputation/Zero_non_zero_component/Test_snp_zero.Rda')
+
+train_clinical_ls_zero<-train_clinical_ls
+train_snp_ls_zero<-train_snp_ls
+test_clinical_ls_zero<-test_clinical_ls
+test_snp_ls_zero<-test_snp_ls
+
+### Prepare clinical sets
+Preprocessing_fnc<-function(clinical_train,clinical_test,snp_train,snp_test,target_col='target',factor_col_opt='One-hot',numerical_col_opt='None'){
+  ########### Factor preprocess
+  if(factor_col_opt=='One-hot'){
+    dmy <- dummyVars(" ~ .", data = clinical_train)
+    trsf_train <- data.frame(predict(dmy, newdata = clinical_train))
+    trsf_test<- data.frame(predict(dmy, newdata = clinical_test))
+    
+    
+    dmy_snp <- dummyVars(" ~ .", data = snp_train)
+    trsf_trainsnp <- data.frame(predict(dmy_snp, newdata = snp_train))
+    trsf_testsnp<- data.frame(predict(dmy_snp, newdata = snp_test))
+    
+  }else if(factor_col_opt=="L-1_encoding"){
+    rec <- recipe(~ ., data = clinical_train) %>%
+      step_dummy(all_nominal(), one_hot = FALSE)  # L-1 encoding
+    
+    prep_rec <- prep(rec)
+    trsf_train <- data.frame(bake(prep_rec, new_data = clinical_train))
+    trsf_train<-preprocess_baked_structure(trsf_train)
+    trsf_test <- data.frame(bake(prep_rec, new_data = clinical_test))
+    trsf_test<-preprocess_baked_structure(trsf_test)
+    
+    
+    
+    rec <- recipe(~ ., data = snp_train) %>%
+      step_dummy(all_nominal(), one_hot = FALSE)  # L-1 encoding
+    
+    prep_rec <- prep(rec)
+    trsf_trainsnp <- data.frame(bake(prep_rec, new_data = snp_train))
+    trsf_trainsnp<-preprocess_baked_structure(trsf_trainsnp)
+    
+    trsf_testsnp <- data.frame(bake(prep_rec, new_data = snp_test))
+    trsf_testsnp<-preprocess_baked_structure(trsf_testsnp)
+    
+    
+  }
+  
+  ########## Numerical preprocess / Scale
+  if(numerical_col_opt=='None'){
+    clinical_train<-trsf_train
+    clinical_test<-trsf_test
+    
+    snp_train<-trsf_trainsnp
+    snp_test<-trsf_testsnp
+    scalerClinical_obj<-NULL
+    scalerSNP_obj<-NULL
+    
+  }else if(numerical_col_opt=='MinMax'){
+    pre_proc <- preProcess(trsf_train, method = c("range"))
+    # Transform the dataset
+    clinical_train <- predict(pre_proc, newdata = trsf_train)
+    clinical_test <- predict(pre_proc, newdata = trsf_test)
+    
+    scalerClinical_obj<-pre_proc
+    
+    pre_procsnp <- preProcess(trsf_trainsnp, method = c("range"))
+    # Transform the dataset
+    snp_train <- predict(pre_procsnp, newdata = trsf_trainsnp)
+    snp_test <- predict(pre_procsnp, newdata = trsf_testsnp)
+    
+    scalerSNP_obj<-pre_procsnp
+    
+  }
+  
+  
+  return(list(`ClinicalTrain`=clinical_train,`ClinicalTest`=clinical_test,`SNPtrain`=snp_train,`SNPtest`=snp_test,`ClinicalScaler`=scalerClinical_obj,
+              `ClinicalSNPScaler`=scalerSNP_obj))
+}
+preprocess_baked_structure<-function(data){
+  df_clean <- as.data.frame(lapply(data, function(x) {
+    if (is.factor(x)) as.numeric(as.character(x))  # convert factors to numeric (via character to keep level values)
+    else if (is.matrix(x)) as.numeric(x)           # flatten any matrix columns
+    else x
+  }))
+  
+  # Remove all attributes (like "assign", "contrasts")
+  df_clean <- as.data.frame(lapply(df_clean, function(x) {
+    attributes(x) <- NULL
+    return(x)
+  }))
+  return(df_clean)
+  
+}
+
+factor_col_opt='One-hot' #One-hot, L-1_encoding
+numerical_col_opt='MinMax' #None, MinMax
+train_clinical_ls_zero_processed<-list()
+test_clinical_ls_zero_processed<-list()
+for(i in 1:10){
+  res_preprocessing<-Preprocessing_fnc(train_clinical_ls_zero[[i]],test_clinical_ls_zero[[i]],train_snp_ls_zero[[i]],test_snp_ls_zero[[i]],factor_col_opt=factor_col_opt,numerical_col_opt=numerical_col_opt)
+  train_set<-res_preprocessing$ClinicalTrain
+  test_set<-res_preprocessing$ClinicalTest
+  
+  train_clinical_ls_zero_processed[[i]]<-train_set
+  test_clinical_ls_zero_processed[[i]]<-test_set
+}
+
+
+### Prepare snps sets
+interaction_analysis <-function(train,test){
+  cols_snp<-which(grepl("rs",colnames(train)))
+  ## Interaction
+  if(length(cols_snp)>=2){
+    
+    snp_cols<-colnames(train)[cols_snp]
+    
+    for(snp1 in snp_cols){
+      rest_cols<-snp_cols[!snp_cols %in% snp1]
+      
+      for(snp2 in rest_cols){
+        interaction_string<-paste0(snp1,'_',snp2)
+        
+        interaction_col<-interaction(train[,snp1],train[,snp2])
+        interaction_col_test<-interaction(test[,snp1],test[,snp2])
+        
+        train[[interaction_string]]<-interaction_col
+        test[[interaction_string]]<-interaction_col_test
+        
+        
+        
+        snp_cols<-snp_cols[!snp_cols %in% snp1]
+        
+      }
+    }
+    
+  }else{
+    return(list(`Train`=train,`Test`=test))
+  }
+  
+  
+  
+  return(list(`Train`=train,`Test`=test))
+  
+}
+train_snp_ls_zero_processed<-list()
+test_snp_ls_zero_processed<-list()
+for(i in 1:10){
+  res_interaction<-interaction_analysis(train_snp_ls_zero[[i]],test_snp_ls_zero[[i]])
+  snp_train<-res_interaction$Train
+  snp_test<-res_interaction$Test
+  res_preprocessing<-Preprocessing_fnc(train_clinical_ls_zero[[i]],test_clinical_ls_zero[[i]],snp_train,snp_test,factor_col_opt=factor_col_opt,numerical_col_opt=numerical_col_opt)
+  
+  train_snp_ls_zero_processed[[i]]<-res_preprocessing$SNPtrain
+  test_snp_ls_zero_processed[[i]]<-res_preprocessing$SNPtest
+}
+
+
+load('./Sensitivity_Analysis_Imputation/Zero_non_zero_component/Models/Models_RF_AUC_None.Rda')
+zero_classifiers<-final_models
+load('./Sensitivity_Analysis_Imputation/Positive_score_component/Risk_classifier/Classifier_Models.Rda')
+load('./Sensitivity_Analysis_Imputation/Positive_score_component/LowRisk_regressor/Regression_Clinical_Low_Models.Rda')
+load('./Sensitivity_Analysis_Imputation/Positive_score_component/LowRisk_regressor/Regression_SNP_Low_Models.Rda')
+load('./Sensitivity_Analysis_Imputation/Positive_score_component/HighRisk_regressor/Regression_Clinical_High_Models.Rda')
+load('./Sensitivity_Analysis_Imputation/Positive_score_component/HighRisk_regressor/Regression_SNP_High_Models.Rda')
+
+
+
+count_classifiers<-classifier_models
+count_regressor_low_cl<-regression_cl_model_low
+count_regressor_high_cl<-regression_cl_model_high
+count_regressor_low_snp<-regression_snp_model_low
+count_regressor_high_snp<-regression_snp_model_high
+
+
+###### load
+load('./Sensitivity_Analysis_Imputation/Positive_score_component/Train_clinical_count.Rda')
+load('./Sensitivity_Analysis_Imputation/Positive_score_component/Test_clinical_count.Rda')
+load('./Sensitivity_Analysis_Imputation/Positive_score_component/Train_snp_count.Rda')
+load('./Sensitivity_Analysis_Imputation/Positive_score_component/Test_snp_count.Rda')
+
+### Prepare clinical sets
+Preprocessing_fnc<-function(clinical_train,clinical_test,snp_train,snp_test,target_col='target',factor_col_opt='One-hot',numerical_col_opt='None'){
+  ########### Factor preprocess
+  if(factor_col_opt=='One-hot'){
+    dmy <- dummyVars(" ~ .", data = clinical_train)
+    trsf_train <- data.frame(predict(dmy, newdata = clinical_train))
+    trsf_test<- data.frame(predict(dmy, newdata = clinical_test))
+    
+    
+    dmy_snp <- dummyVars(" ~ .", data = snp_train)
+    trsf_trainsnp <- data.frame(predict(dmy_snp, newdata = snp_train))
+    trsf_testsnp<- data.frame(predict(dmy_snp, newdata = snp_test))
+    
+  }else if(factor_col_opt=="L-1_encoding"){
+    rec <- recipe(~ ., data = clinical_train) %>%
+      step_dummy(all_nominal(), one_hot = FALSE)  # L-1 encoding
+    
+    prep_rec <- prep(rec)
+    trsf_train <- data.frame(bake(prep_rec, new_data = clinical_train))
+    trsf_train<-preprocess_baked_structure(trsf_train)
+    trsf_test <- data.frame(bake(prep_rec, new_data = clinical_test))
+    trsf_test<-preprocess_baked_structure(trsf_test)
+    
+    
+    
+    rec <- recipe(~ ., data = snp_train) %>%
+      step_dummy(all_nominal(), one_hot = FALSE)  # L-1 encoding
+    
+    prep_rec <- prep(rec)
+    trsf_trainsnp <- data.frame(bake(prep_rec, new_data = snp_train))
+    trsf_trainsnp<-preprocess_baked_structure(trsf_trainsnp)
+    
+    trsf_testsnp <- data.frame(bake(prep_rec, new_data = snp_test))
+    trsf_testsnp<-preprocess_baked_structure(trsf_testsnp)
+    
+    
+  }
+  
+  ########## Numerical preprocess / Scale
+  if(numerical_col_opt=='None'){
+    clinical_train<-trsf_train
+    clinical_test<-trsf_test
+    
+    snp_train<-trsf_trainsnp
+    snp_test<-trsf_testsnp
+    scalerClinical_obj<-NULL
+    scalerSNP_obj<-NULL
+    
+  }else if(numerical_col_opt=='MinMax'){
+    pre_proc <- preProcess(trsf_train, method = c("range"))
+    # Transform the dataset
+    clinical_train <- predict(pre_proc, newdata = trsf_train)
+    clinical_test <- predict(pre_proc, newdata = trsf_test)
+    
+    scalerClinical_obj<-pre_proc
+    
+    pre_procsnp <- preProcess(trsf_trainsnp, method = c("range"))
+    # Transform the dataset
+    snp_train <- predict(pre_procsnp, newdata = trsf_trainsnp)
+    snp_test <- predict(pre_procsnp, newdata = trsf_testsnp)
+    
+    scalerSNP_obj<-pre_procsnp
+    
+  }
+  
+  
+  return(list(`ClinicalTrain`=clinical_train,`ClinicalTest`=clinical_test,`SNPtrain`=snp_train,`SNPtest`=snp_test,`ClinicalScaler`=scalerClinical_obj,
+              `ClinicalSNPScaler`=scalerSNP_obj))
+}
+preprocess_baked_structure<-function(data){
+  df_clean <- as.data.frame(lapply(data, function(x) {
+    if (is.factor(x)) as.numeric(as.character(x))  # convert factors to numeric (via character to keep level values)
+    else if (is.matrix(x)) as.numeric(x)           # flatten any matrix columns
+    else x
+  }))
+  
+  # Remove all attributes (like "assign", "contrasts")
+  df_clean <- as.data.frame(lapply(df_clean, function(x) {
+    attributes(x) <- NULL
+    return(x)
+  }))
+  return(df_clean)
+  
+}
+
+factor_col_opt='One-hot' #One-hot, L-1_encoding
+numerical_col_opt='MinMax' #None, MinMax
+train_clinical_ls_processed<-list()
+test_clinical_ls_processed<-list()
+for(i in 1:10){
+  res_preprocessing<-Preprocessing_fnc(train_clinical_ls[[i]],test_clinical_ls[[i]],train_snp_ls[[i]],test_snp_ls[[i]],factor_col_opt=factor_col_opt,numerical_col_opt=numerical_col_opt)
+  train_set<-res_preprocessing$ClinicalTrain
+  test_set<-res_preprocessing$ClinicalTest
+  
+  train_clinical_ls_processed[[i]]<-train_set
+  test_clinical_ls_processed[[i]]<-test_set
+}
+
+
+### Prepare snps sets
+interaction_analysis <-function(train,test){
+  cols_snp<-which(grepl("rs",colnames(train)))
+  ## Interaction
+  if(length(cols_snp)>=2){
+    
+    snp_cols<-colnames(train)[cols_snp]
+    
+    for(snp1 in snp_cols){
+      rest_cols<-snp_cols[!snp_cols %in% snp1]
+      
+      for(snp2 in rest_cols){
+        interaction_string<-paste0(snp1,'_',snp2)
+        
+        interaction_col<-interaction(train[,snp1],train[,snp2])
+        interaction_col_test<-interaction(test[,snp1],test[,snp2])
+        
+        train[[interaction_string]]<-interaction_col
+        test[[interaction_string]]<-interaction_col_test
+        
+        
+        
+        snp_cols<-snp_cols[!snp_cols %in% snp1]
+        
+      }
+    }
+    
+  }else{
+    return(list(`Train`=train,`Test`=test))
+  }
+  
+  
+  
+  return(list(`Train`=train,`Test`=test))
+  
+}
+train_snp_ls_processed<-list()
+test_snp_ls_processed<-list()
+for(i in 1:10){
+  res_interaction<-interaction_analysis(train_snp_ls[[i]],test_snp_ls[[i]])
+  snp_train<-res_interaction$Train
+  snp_test<-res_interaction$Test
+  res_preprocessing<-Preprocessing_fnc(train_clinical_ls[[i]],test_clinical_ls[[i]],snp_train,snp_test,factor_col_opt=factor_col_opt,numerical_col_opt=numerical_col_opt)
+  
+  train_snp_ls_processed[[i]]<-res_preprocessing$SNPtrain
+  test_snp_ls_processed[[i]]<-res_preprocessing$SNPtest
+}
+
+
+
+
+################# Find common indices between zero and test #################
+common_inds<-list()
+load('./Test_inds.Rda')
+load("./Whole_dataset.Rda")
+dataset<-dataset[!is.na(dataset$SYNTAX.SCORE),]
+library(dplyr)
+common_indices_fnc<-function(test_count,test_zero,dataset){
+  # Original row positions in the supplied dataset
+  original <- dataset %>%
+    mutate(.original_row = seq_len(nrow(dataset)))
+  
+  # Match using all columns in each subset
+  test_count<-test_count[!colnames(test_count) %in% c('Binary.SS')]
+  count_indices <- original %>%
+    semi_join(test_count, by = names(test_count)) %>%
+    pull(.original_row)
+  
+  test_zero<-test_zero[!colnames(test_zero) %in% c('target')]
+  zero_indices <- original %>%
+    semi_join(test_zero, by = names(test_zero)) %>%
+    pull(.original_row)
+  
+  common_indices <- intersect(count_indices, zero_indices)
+  
+  rows_count_wanted<-which(common_indices %in% count_indices)
+  test_count<-test_count[rows_count_wanted,]
+  
+  rows_zero_wanted<-which(common_indices %in% zero_indices)
+  test_zero<-test_zero[rows_zero_wanted,]
+  
+  
+  return(list(Count_inds=rows_count_wanted,Zero_inds=rows_zero_wanted))
+}
+
+################## Rest with the common indices only ########################
+
+Count_part_prediction<-function(test,classifier,regressor_low,regressor_high,thresh){
+  preds_classifiers<-predict(classifier,newdata=test,type="prob")[,2]
+  preds_classifiers<-ifelse(preds_classifiers>=thresh,"pos","neg")
+  preds_regressor_low<-predict(regressor_low,newdata=test)
+  preds_regressor_high<-predict(regressor_high,newdata = test)
+  
+  preds_f<-round(ifelse(preds_classifiers=='pos',preds_regressor_high,preds_regressor_low),2)
+  return(preds_f)
+}
+Optimal_threshold<-function(train,target,classifier,type="count"){
+  if(type=="count"){
+    probs<-predict(classifier,newdata=train,type="prob")[,2]
+    roc_obj <- roc(
+      response = target,
+      predictor = probs,
+      levels = c(0, 1),
+      direction = "<"  # Higher probabilities indicate class 1
+    )
+    best <- coords(
+      roc_obj,
+      x = "best",
+      best.method = "youden",
+      ret = c("threshold", "sensitivity", "specificity"),
+      transpose = FALSE
+    )
+    thresh<-best$threshold  
+  }else{
+    probs<-predict(classifier,newdata=train,type="prob")[[1]][,2]
+    roc_obj <- roc(
+      response = target,
+      predictor = probs,
+      levels = c(0, 1),
+      direction = "<"  # Higher probabilities indicate class 1
+    )
+    best <- coords(
+      roc_obj,
+      x = "best",
+      best.method = "youden",
+      ret = c("threshold", "sensitivity", "specificity"),
+      transpose = FALSE
+    )
+    thresh<-best$threshold  
+  }
+  
+  return(thresh)
+}
+
+opt_arr<-c("AUC")
+resamp_arr<-c("None")
+predictions_cl_all<-list()
+target_cl_all<-list()
+probs_binary_cl_all<-list()
+
+for(opt in opt_arr){
+  for(resamp in resamp_arr){
+    predictions_clinical<-c()
+    target_clinical<-c()
+    probs_binary<-c()
+    ae_arr<-c()
+    fold_arr<-c()
+    for(jj in 1:10){
+      
+      indices_wanted<-common_indices_fnc(test_clinical_ls[[jj]],test_clinical_ls_zero[[jj]],dataset)
+      
+
+      
+                
+      
+      clinical_zero<-test_clinical_ls_zero_processed[[jj]]
+      clinical_zero<-clinical_zero[indices_wanted$Zero_inds,]
+      
+      clinical_count<-test_clinical_ls_processed[[jj]]
+      clinical_count<-clinical_count[indices_wanted$Count_inds,]
+      
+      
+      ############### Zero part #######################
+      
+      zero_jj<-zero_classifiers[paste0('Clinical_RF_',jj)]
+      preds_zero<-predict(zero_jj,clinical_zero,type='prob')[[1]][,2]
+      thresh_zero<-Optimal_threshold(train_clinical_ls_zero_processed[[jj]],train_clinical_ls_zero[[jj]]$target,zero_jj,
+                                     type="zero")
+      
+      
+      
+      #Clinical
+      name<-paste0('Clinical_',opt,'_',resamp,'_',jj)
+      classifier<-count_classifiers[[name]]
+      thresh<-Optimal_threshold(train_clinical_ls_processed[[jj]],train_clinical_ls[[jj]]$Binary.SS,classifier)
+      
+      name_regr<-paste0('Clinical_AUC_',resamp,'_',jj)
+      regressor_low<-count_regressor_low_cl[[name_regr]]
+      regressor_high<-count_regressor_high_cl[[name_regr]]
+      preds_count<-Count_part_prediction(clinical_count,classifier,regressor_low,regressor_high,thresh)
+      
+      
+      predictions<-ifelse(preds_zero<thresh_zero,0,preds_count)
+      predictions_clinical<-c(predictions_clinical,predictions)
+      
+      
+      target<-test_clinical_ls[[jj]]$SYNTAX.SCORE[indices_wanted$Count_inds]
+      target_clinical<-c(target_clinical,target)
+      
+      ae<-mean(abs(target-predictions))
+      ae_arr<-c(ae_arr,ae)
+      fold_arr<-c(fold_arr,jj)
+    }
+    name<-paste0('Clinical_',opt,'_',resamp)
+    predictions_cl_all[[name]]<-predictions_clinical
+    target_cl_all[[name]]<-target_clinical
+    probs_binary_cl_all[[name]]<-probs_binary
+  }
+}
+
+
+
+round(mean(abs(predictions_clinical-target_clinical)),2)
+round(median(abs(predictions_clinical-target_clinical)),2)
+
+
+
+
+opt_arr<-c("AUC")
+resamp_arr<-c("None")
+predictions_snp_all<-list()
+target_snp_all<-list()
+probs_binary_snp_all<-list()
+fold_arr<-c()
+for(opt in opt_arr){
+  for(resamp in resamp_arr){
+    predictions_snp<-c()
+    target_snp<-c()
+    probs_binary<-c()
+    
+    fold_arr<-c()
+    ae_snp<-c()
+    for(jj in 1:10){
+      indices_wanted<-common_indices_fnc(test_clinical_ls[[jj]],test_clinical_ls_zero[[jj]],dataset)
+      
+      
+      snp_zero<-test_snp_ls_zero_processed[[jj]]
+      snp_zero<-snp_zero[indices_wanted$Zero_inds,]
+      
+      snp_count<-test_snp_ls_processed[[jj]]
+      snp_count<-snp_count[indices_wanted$Count_inds,]
+      
+      
+      
+      zero_jj<-zero_classifiers[paste0('SNP_RF_',jj)]
+      preds_zero<-predict(zero_jj,snp_zero,type='prob')[[1]][,2]
+      thresh_zero<-Optimal_threshold(train_snp_ls_zero_processed[[jj]],train_snp_ls_zero[[jj]]$target,zero_jj,
+                                     type="zero")
+      
+      
+      
+      
+      
+      name<-paste0('SNP_',opt,'_',resamp,'_',jj)
+      classifier<-count_classifiers[[name]]
+      thresh<-Optimal_threshold(train_snp_ls_processed[[jj]],train_snp_ls[[jj]]$Binary.SS,classifier)
+      
+      name_regr<-paste0('SNP_AUC_',resamp,'_',jj)
+      regressor_low<-count_regressor_low_snp[[name_regr]]
+      regressor_high<-count_regressor_high_snp[[name_regr]]
+      preds_count<-Count_part_prediction(snp_count,classifier,regressor_low,regressor_high,thresh)
+      
+      
+      predictions<-ifelse(preds_zero< thresh_zero,0,preds_count)
+      predictions_snp<-c(predictions_snp,predictions)
+      
+      
+      target<-test_snp_ls[[jj]]$SYNTAX.SCORE[indices_wanted$Count_inds]
+      target_snp<-c(target_snp,target)
+      
+      ae<-median(abs(target-predictions))
+      
+      ae_snp<-c(ae_snp,ae)
+      
+      
+      fold_jj<-rep(jj,length(target))
+      fold_arr<-c(fold,fold_jj)
+    }
+    name<-paste0('SNP_',opt,'_',resamp)
+    predictions_snp_all[[name]]<-predictions_snp
+    target_snp_all[[name]]<-target_snp
+    #probs_binary_snp_all[[name]]<-probs_binary
+  }
+}
+round(mean(abs(predictions_snp-target_snp)),2)
+round(median(abs(predictions_snp-target_snp)),2)
+
+
+
+res<-data.frame(Target=target_clinical,Fold=fold_arr,Clinical.Predicted=predictions_clinical,SNP.Predicted=predictions_snp)
+save(res,file='./Full_model_results.Rda')
+
