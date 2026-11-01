@@ -37,8 +37,6 @@ library(pROC)
 
 
 
-#load('C:/Users/dtryg/Desktop/GESS_experiments_code/Sensitivity_Analysis_Imputation/Imputed_test_clinical.Rda')
-#load('C:/Users/dtryg/Desktop/GESS_experiments_code/Sensitivity_Analysis_Imputation/Imputed_test_snp.Rda')
 load('./Sensitivity_Analysis_Imputation/Positive_score_component/Test_clinical_count.Rda')
 load('./Sensitivity_Analysis_Imputation/Positive_score_component/Test_snp_count.Rda')
 load('./Sensitivity_Analysis_Imputation/Positive_score_component/Train_clinical_count.Rda')
@@ -198,97 +196,392 @@ for(i in 1:10){
 
 
 
-
+Optimal_threshold <- function(
+    train, target, classifier, type = "count", seed = 123
+) {
+  # Accept either a caret model or your one-element model list.
+  if (!inherits(classifier, "train")) {
+    if (is.list(classifier) &&
+        length(classifier) == 1L &&
+        inherits(classifier[[1]], "train")) {
+      classifier <- classifier[[1]]
+    } else {
+      stop("classifier must contain a caret::train model.")
+    }
+  }
+  
+  if (classifier$method != "rf") {
+    stop("This function expects a caret Random Forest classifier.")
+  }
+  
+  # Use exactly the predictors used to fit the original classifier.
+  # This excludes outcome columns present in 'train'.
+  predictor_names <- classifier$coefnames
+  
+  if (is.null(predictor_names) ||
+      !all(predictor_names %in% names(train))) {
+    stop("train must contain all original processed predictor columns.")
+  }
+  
+  x <- as.data.frame(train[, predictor_names, drop = FALSE])
+  
+  if (nrow(x) != length(target)) {
+    stop("train and target must have the same number and order of rows.")
+  }
+  
+  target <- as.character(target)
+  
+  if (anyNA(target) || !all(target %in% c("0", "1"))) {
+    stop("target must contain only 0 and 1, without missing values.")
+  }
+  
+  y <- factor(target, levels = c("0", "1"),
+              labels = c("neg", "pos"))
+  
+  if (anyNA(x)) {
+    stop("train must contain complete eligible outer-training rows.")
+  }
+  
+  if (any(table(y) < 4L)) {
+    stop("At least four observations per class are needed.")
+  }
+  
+  set.seed(seed)
+  
+  # Each participant is held out once.
+  folds <- caret::createFolds(y, k = 4, returnTrain = FALSE)
+  cv_probabilities <- rep(NA_real_, nrow(x))
+  
+  for (i in seq_along(folds)) {
+    validation_rows <- folds[[i]]
+    training_rows <- setdiff(seq_len(nrow(x)), validation_rows)
+    
+    # Refit using the selected mtry and original RF settings.
+    # No further hyperparameter search is performed.
+    fold_model <- randomForest::randomForest(
+      x = x[training_rows, , drop = FALSE],
+      y = y[training_rows],
+      mtry = classifier$bestTune$mtry,
+      ntree = classifier$finalModel$ntree
+    )
+    
+    cv_probabilities[validation_rows] <- predict(
+      fold_model,
+      newdata = x[validation_rows, , drop = FALSE],
+      type = "prob"
+    )[, "pos"]
+  }
+  
+  if (any(!is.finite(cv_probabilities))) {
+    stop("Some inner-CV probabilities are missing or non-finite.")
+  }
+  
+  roc_obj <- pROC::roc(
+    response = y,
+    predictor = cv_probabilities,
+    levels = c("neg", "pos"),
+    direction = "<",
+    quiet = TRUE
+  )
+  
+  best <- pROC::coords(
+    roc_obj,
+    x = "best",
+    best.method = "youden",
+    ret = "threshold",
+    transpose = FALSE
+  )
+  
+  thresholds <- best$threshold
+  thresholds <- thresholds[is.finite(thresholds)]
+  
+  if (!length(thresholds)) {
+    stop("No finite optimal threshold was found.")
+  }
+  
+  # Explicit tie rule: larger threshold favors specificity.
+  return(max(thresholds))
+}
 target_arr<-c()
 fold_arr<-c()
 predicted_snp<-c()
 predicted_clinical<-c()
-library(pROC)
-for(fold in 1:10){
-  ############ SNP ##################
-  classifier_snp<-classifier_models[paste0("SNP_AUC_None_",fold)]
-  low_regression_snp<-regression_snp_model_low[paste0("SNP_AUC_None_",fold)]
-  high_regression_snp<-regression_snp_model_high[paste0("SNP_AUC_None_",fold)]
+Count_part_prediction<-function(test,classifier,regressor_low,regressor_high,thresh){
+  preds_classifiers<-predict(classifier,newdata=test,type="prob")[,2]
+  preds_classifiers<-ifelse(preds_classifiers>=thresh,"pos","neg")
+  preds_regressor_low<-predict(regressor_low,newdata=test)
+  preds_regressor_high<-predict(regressor_high,newdata = test)
   
-  test_snp<-test_snp_ls_processed[[fold]]
-  #fold_1<-rep(fold,nrow(test_clinical))
-  #fold_arr<-c(fold_arr,fold_1)
+  preds_f<-round(ifelse(preds_classifiers=='pos',preds_regressor_high,preds_regressor_low),2)
+  return(preds_f)
+}
+Optimal_threshold <- function(
+    train, target, classifier, type = "count", seed = 123
+) {
+  # Accept either a caret model or your one-element model list.
+  if (!inherits(classifier, "train")) {
+    if (is.list(classifier) &&
+        length(classifier) == 1L &&
+        inherits(classifier[[1]], "train")) {
+      classifier <- classifier[[1]]
+    } else {
+      stop("classifier must contain a caret::train model.")
+    }
+  }
   
-  #target_fold<-imputated_train_clinical[[fold]]$SYNTAX.SCORE
-  #target_arr<-c(target_arr,target_fold)
+  if (classifier$method != "rf") {
+    stop("This function expects a caret Random Forest classifier.")
+  }
   
-  #### Find optimal threshold ##
-  target_train<-train_snp_ls[[fold]]$SYNTAX.SCORE
-  target_binary<-ifelse(target_train>23,1,0)
+  # Use exactly the predictors used to fit the original classifier.
+  # This excludes outcome columns present in 'train'.
+  predictor_names <- classifier$coefnames
   
-  train_snp<-train_snp_ls_processed[[fold]]
-  preds_probs_snp<-predict(classifier_snp,newdata=train_snp,type="prob")[[1]]
+  if (is.null(predictor_names) ||
+      !all(predictor_names %in% names(train))) {
+    stop("train must contain all original processed predictor columns.")
+  }
   
-  roc_snp<-roc(target_binary,preds_probs_snp[,"pos"])
+  x <- as.data.frame(train[, predictor_names, drop = FALSE])
+  
+  if (nrow(x) != length(target)) {
+    stop("train and target must have the same number and order of rows.")
+  }
+  
+  target <- as.character(target)
+  
+  if (anyNA(target) || !all(target %in% c("0", "1"))) {
+    stop("target must contain only 0 and 1, without missing values.")
+  }
+  
+  y <- factor(target, levels = c("0", "1"),
+              labels = c("neg", "pos"))
+  
+  if (anyNA(x)) {
+    stop("train must contain complete eligible outer-training rows.")
+  }
+  
+  if (any(table(y) < 4L)) {
+    stop("At least four observations per class are needed.")
+  }
+  
+  set.seed(seed)
+  
+  # Each participant is held out once.
+  folds <- caret::createFolds(y, k = 4, returnTrain = FALSE)
+  cv_probabilities <- rep(NA_real_, nrow(x))
+  
+  for (i in seq_along(folds)) {
+    validation_rows <- folds[[i]]
+    training_rows <- setdiff(seq_len(nrow(x)), validation_rows)
+    
+    # Refit using the selected mtry and original RF settings.
+    # No further hyperparameter search is performed.
+    fold_model <- randomForest::randomForest(
+      x = x[training_rows, , drop = FALSE],
+      y = y[training_rows],
+      mtry = classifier$bestTune$mtry,
+      ntree = classifier$finalModel$ntree
+    )
+    
+    cv_probabilities[validation_rows] <- predict(
+      fold_model,
+      newdata = x[validation_rows, , drop = FALSE],
+      type = "prob"
+    )[, "pos"]
+  }
+  
+  if (any(!is.finite(cv_probabilities))) {
+    stop("Some inner-CV probabilities are missing or non-finite.")
+  }
+  
+  roc_obj <- pROC::roc(
+    response = y,
+    predictor = cv_probabilities,
+    levels = c("neg", "pos"),
+    direction = "<",
+    quiet = TRUE
+  )
+  
   best <- pROC::coords(
-    roc_snp,
+    roc_obj,
     x = "best",
     best.method = "youden",
-    ret = c("threshold", "sensitivity", "specificity"),
+    ret = "threshold",
     transpose = FALSE
   )
-  thresh<-best$threshold
   
-  pred_probs<-predict(classifier_snp,newdata=test_snp,type="prob")[[1]]
-  preds_class<-ifelse(pred_probs[,2]>thresh,1,0)  
+  thresholds <- best$threshold
+  thresholds <- thresholds[is.finite(thresholds)]
   
-  regression_vals_low<-as.numeric(predict(low_regression_snp,newdata=test_snp)[[1]])
-  regression_vals_high<-as.numeric(predict(high_regression_snp,newdata=test_snp)[[1]])
+  if (!length(thresholds)) {
+    stop("No finite optimal threshold was found.")
+  }
   
-  
-  predicted_val_overall<-round(ifelse(preds_class==0,regression_vals_low,regression_vals_high),2)
-  predicted_snp<-c(predicted_snp,predicted_val_overall)
-  
-  ############ Clinical ##################
-  classifier_clinical<-classifier_models[paste0("Clinical_AUC_None_",fold)]
-  low_regression_clinical<-regression_cl_model_low[paste0("Clinical_AUC_None_",fold)]
-  high_regression_clinical<-regression_cl_model_high[paste0("Clinical_AUC_None_",fold)]
+  # Explicit tie rule: larger threshold favors specificity.
+  return(max(thresholds))
+}
+opt_arr<-c("AUC")
+resamp_arr<-c("None")
+predictions_cl_all<-list()
+target_cl_all<-list()
+probs_binary_cl_all<-list()
 
-  test_clinical<-test_clinical_ls_processed[[fold]]
-  fold_1<-rep(fold,nrow(test_clinical))
-  fold_arr<-c(fold_arr,fold_1)
-  
-  target_fold<-test_clinical_ls[[fold]]$SYNTAX.SCORE
-  target_arr<-c(target_arr,target_fold)
-  
-  #### Find optimal threshold ##
-  target_train<-train_clinical_ls[[fold]]$SYNTAX.SCORE
-  target_binary<-ifelse(target_train>23,1,0)
-  
-  train_clinical<-train_clinical_ls_processed[[fold]]
-  preds_probs_clinical<-predict(classifier_clinical,newdata=train_clinical,type="prob")[[1]]
-  
-  roc_clinical<-roc(target_binary,preds_probs_clinical[,"pos"])
-  best <- pROC::coords(
-    roc_clinical,
-    x = "best",
-    best.method = "youden",
-    ret = c("threshold", "sensitivity", "specificity"),
-    transpose = FALSE
-  )
-  thresh<-0.03
-  
-  pred_probs<-predict(classifier_clinical,newdata=test_clinical,type="prob")[[1]]
-  preds_class<-ifelse(pred_probs[,2]>thresh,1,0)  
-  
-  regression_vals_low<-as.numeric(predict(low_regression_clinical,newdata=test_clinical)[[1]])
-  regression_vals_high<-as.numeric(predict(high_regression_clinical,newdata=test_clinical)[[1]])
-  
-  
-  predicted_val_overall<-round(ifelse(preds_class==0,regression_vals_low,regression_vals_high),2)
-  predicted_clinical<-c(predicted_clinical,predicted_val_overall)
-  
-  
-  
-  
+for(opt in opt_arr){
+  for(resamp in resamp_arr){
+    predictions_clinical<-c()
+    target_clinical<-c()
+    probs_binary<-c()
+    ae_arr<-c()
+    fold_arr<-c()
+    for(jj in 1:10){
+      #snp_zero<-final_test_snp_zero_ls[[jj]]
+      snp_count<-test_snp_ls_processed[[jj]]
+      
+      #complete_snp<-complete.cases(snp_zero)
+      complete_snp_count<-complete.cases(snp_count)
+      
+      #complete_snp_all<-complete_snp & complete_snp_count
+      
+      
+      #clinical_zero<-final_test_clinical_zero_ls[[jj]]
+      clinical_count<-test_clinical_ls_processed[[jj]]
+      
+      #complete_cl<-complete.cases(clinical_zero)
+      complete_count<-complete.cases(clinical_count)
+      
+      #complete_cl<-complete_cl & complete_count
+      
+      
+      complete<-complete_snp_count & complete_count
+      
+      #clinical_zero<-clinical_zero[complete,]
+      clinical_count<-clinical_count[complete,]
+      
+      
+      #zero_jj<-zero_models[paste0('Clinical_RF_',jj)]
+      #preds<-predict(zero_jj,clinical_zero)[[1]]
+      #preds_probs<-predict(zero_jj,clinical_zero,type='prob')[[1]]
+      #probs_binary<-c(probs_binary,preds_probs[,2])
+      
+      #Clinical
+      name<-paste0('Clinical_',opt,'_',resamp,'_',jj)
+      classifier<-count_classifiers[[name]]
+      thresh<-Optimal_threshold(train_clinical_ls_processed[[jj]],train_clinical_ls[[jj]]$Binary.SS,classifier)
+      
+      name_regr<-paste0('Clinical_AUC_',resamp,'_',jj)
+      regressor_low<-count_regressor_low_cl[[name_regr]]
+      regressor_high<-count_regressor_high_cl[[name_regr]]
+      preds_count<-Count_part_prediction(clinical_count,classifier,regressor_low,regressor_high,thresh)
+      
+      
+      predictions<-preds_count#ifelse(preds=='neg',0,preds_count)
+      predictions_clinical<-c(predictions_clinical,predictions)
+      
+      
+      target<-test_clinical_ls[[jj]]$SYNTAX.SCORE
+      target_clinical<-c(target_clinical,target)
+      
+      ae<-mean(abs(target-predictions))
+      ae_arr<-c(ae_arr,ae)
+      fold_arr<-c(fold_arr,jj)
+    }
+    name<-paste0('Clinical_',opt,'_',resamp)
+    predictions_cl_all[[name]]<-predictions_clinical
+    target_cl_all[[name]]<-target_clinical
+    probs_binary_cl_all[[name]]<-probs_binary
+  }
 }
 
 
-res_count<-data.frame(Target=target_arr,Fold=fold_arr,Predicted.SNP=predicted_snp,
-                      Predicted.Clinical=predicted_clinical)
+
+round(mean(abs(predictions_clinical-target_clinical)),2)
+round(median(abs(predictions_clinical-target_clinical)),2)
+
+
+
+
+opt_arr<-c("AUC")
+resamp_arr<-c("None")
+predictions_snp_all<-list()
+target_snp_all<-list()
+probs_binary_snp_all<-list()
+for(opt in opt_arr){
+  for(resamp in resamp_arr){
+    predictions_snp<-c()
+    target_snp<-c()
+    probs_binary<-c()
+    
+    fold_arr<-c()
+    ae_snp<-c()
+    for(jj in 1:10){
+      #snp_zero<-final_test_snp_zero_ls[[jj]]
+      snp_count<-test_snp_ls_processed[[jj]]
+      
+      #complete_snp<-complete.cases(snp_zero)
+      complete_snp_count<-complete.cases(snp_count)
+      
+      #complete_snp_all<-complete_snp & complete_snp_count
+      
+      
+      #clinical_zero<-final_test_clinical_zero_ls[[jj]]
+      #clinical_count<-final_test_clinical_count_ls[[jj]]
+      
+      #complete_cl<-complete.cases(clinical_zero)
+      #complete_count<-complete.cases(clinical_count)
+      
+      #complete_cl<-complete_cl & complete_count
+      
+      
+      #complete<-complete_cl & complete_snp_all
+      
+      
+      
+      #snp_zero<-snp_zero[complete,]
+      snp_count<-snp_count[complete_snp_count,]
+      
+      
+      #zero_jj<-zero_models[paste0('SNP_RF_',jj)]
+      #preds<-predict(zero_jj,snp_zero)[[1]]
+      
+      #preds_probs<-predict(zero_jj,snp_zero,type='prob')[[1]]
+      #probs_binary<-c(probs_binary,preds_probs[,2])
+      #snp
+      
+      
+      
+      
+      name<-paste0('SNP_',opt,'_',resamp,'_',jj)
+      classifier<-count_classifiers[[name]]
+      thresh<-Optimal_threshold(train_snp_ls_processed[[jj]],train_snp_ls[[jj]]$Binary.SS,classifier)
+      
+      name_regr<-paste0('SNP_AUC_',resamp,'_',jj)
+      regressor_low<-count_regressor_low_snp[[name_regr]]
+      regressor_high<-count_regressor_high_snp[[name_regr]]
+      preds_count<-Count_part_prediction(snp_count,classifier,regressor_low,regressor_high,thresh)
+      
+      
+      predictions<-preds_count#ifelse(preds=='neg',0,preds_count)
+      predictions_snp<-c(predictions_snp,predictions)
+      
+      
+      target<-test_snp_ls[[jj]]$SYNTAX.SCORE
+      target_snp<-c(target_snp,target)
+      
+      ae<-median(abs(target-predictions))
+      
+      ae_snp<-c(ae_snp,ae)
+    }
+    name<-paste0('SNP_',opt,'_',resamp)
+    predictions_snp_all[[name]]<-predictions_snp
+    target_snp_all[[name]]<-target_snp
+    #probs_binary_snp_all[[name]]<-probs_binary
+  }
+}
+round(mean(abs(predictions_snp-target_snp)),2)
+round(median(abs(predictions_snp-target_snp)),2)
+
+
+
+res<-data.frame(Target=target_clinical,Fold=fold_arr,Clinical.Predicted=predictions_clinical,SNP.Predicted=predictions_snp)
 save(res,file='./Sensitivity_Analysis_Imputation/Count_part.Rda')

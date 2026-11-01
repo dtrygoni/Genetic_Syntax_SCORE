@@ -382,44 +382,112 @@ Count_part_prediction<-function(test,classifier,regressor_low,regressor_high,thr
   preds_f<-round(ifelse(preds_classifiers=='pos',preds_regressor_high,preds_regressor_low),2)
   return(preds_f)
 }
-Optimal_threshold<-function(train,target,classifier,type="count"){
-  if(type=="count"){
-    probs<-predict(classifier,newdata=train,type="prob")[,2]
-    roc_obj <- roc(
-      response = target,
-      predictor = probs,
-      levels = c(0, 1),
-      direction = "<"  # Higher probabilities indicate class 1
-    )
-    best <- coords(
-      roc_obj,
-      x = "best",
-      best.method = "youden",
-      ret = c("threshold", "sensitivity", "specificity"),
-      transpose = FALSE
-    )
-    thresh<-best$threshold  
-  }else{
-    probs<-predict(classifier,newdata=train,type="prob")[[1]][,2]
-    roc_obj <- roc(
-      response = target,
-      predictor = probs,
-      levels = c(0, 1),
-      direction = "<"  # Higher probabilities indicate class 1
-    )
-    best <- coords(
-      roc_obj,
-      x = "best",
-      best.method = "youden",
-      ret = c("threshold", "sensitivity", "specificity"),
-      transpose = FALSE
-    )
-    thresh<-best$threshold  
+Optimal_threshold <- function(
+    train, target, classifier, type = "count", seed = 123
+) {
+  # Accept either a caret model or your one-element model list.
+  if (!inherits(classifier, "train")) {
+    if (is.list(classifier) &&
+        length(classifier) == 1L &&
+        inherits(classifier[[1]], "train")) {
+      classifier <- classifier[[1]]
+    } else {
+      stop("classifier must contain a caret::train model.")
+    }
   }
   
-  return(thresh)
+  if (classifier$method != "rf") {
+    stop("This function expects a caret Random Forest classifier.")
+  }
+  
+  # Use exactly the predictors used to fit the original classifier.
+  # This excludes outcome columns present in 'train'.
+  predictor_names <- classifier$coefnames
+  
+  if (is.null(predictor_names) ||
+      !all(predictor_names %in% names(train))) {
+    stop("train must contain all original processed predictor columns.")
+  }
+  
+  x <- as.data.frame(train[, predictor_names, drop = FALSE])
+  
+  if (nrow(x) != length(target)) {
+    stop("train and target must have the same number and order of rows.")
+  }
+  
+  target <- as.character(target)
+  
+  if (anyNA(target) || !all(target %in% c("0", "1"))) {
+    stop("target must contain only 0 and 1, without missing values.")
+  }
+  
+  y <- factor(target, levels = c("0", "1"),
+              labels = c("neg", "pos"))
+  
+  if (anyNA(x)) {
+    stop("train must contain complete eligible outer-training rows.")
+  }
+  
+  if (any(table(y) < 4L)) {
+    stop("At least four observations per class are needed.")
+  }
+  
+  set.seed(seed)
+  
+  # Each participant is held out once.
+  folds <- caret::createFolds(y, k = 4, returnTrain = FALSE)
+  cv_probabilities <- rep(NA_real_, nrow(x))
+  
+  for (i in seq_along(folds)) {
+    validation_rows <- folds[[i]]
+    training_rows <- setdiff(seq_len(nrow(x)), validation_rows)
+    
+    # Refit using the selected mtry and original RF settings.
+    # No further hyperparameter search is performed.
+    fold_model <- randomForest::randomForest(
+      x = x[training_rows, , drop = FALSE],
+      y = y[training_rows],
+      mtry = classifier$bestTune$mtry,
+      ntree = classifier$finalModel$ntree
+    )
+    
+    cv_probabilities[validation_rows] <- predict(
+      fold_model,
+      newdata = x[validation_rows, , drop = FALSE],
+      type = "prob"
+    )[, "pos"]
+  }
+  
+  if (any(!is.finite(cv_probabilities))) {
+    stop("Some inner-CV probabilities are missing or non-finite.")
+  }
+  
+  roc_obj <- pROC::roc(
+    response = y,
+    predictor = cv_probabilities,
+    levels = c("neg", "pos"),
+    direction = "<",
+    quiet = TRUE
+  )
+  
+  best <- pROC::coords(
+    roc_obj,
+    x = "best",
+    best.method = "youden",
+    ret = "threshold",
+    transpose = FALSE
+  )
+  
+  thresholds <- best$threshold
+  thresholds <- thresholds[is.finite(thresholds)]
+  
+  if (!length(thresholds)) {
+    stop("No finite optimal threshold was found.")
+  }
+  
+  # Explicit tie rule: larger threshold favors specificity.
+  return(max(thresholds))
 }
-
 opt_arr<-c("AUC")
 resamp_arr<-c("None")
 predictions_cl_all<-list()
