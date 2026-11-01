@@ -614,7 +614,7 @@ dataset<-dataset[!colnames(dataset) %in% c("MPV","INR")]
 ### Parameters
 genetic_modelling<-'Optimal'#Codominant, Optimal
 HWE_threshold<-0.05
-MAF_threshold<-0.05
+MAF_threshold<-5
 clinical_cols<-1:47
 LR_threshold<-0.10
 Boruta_threshold<-0.05
