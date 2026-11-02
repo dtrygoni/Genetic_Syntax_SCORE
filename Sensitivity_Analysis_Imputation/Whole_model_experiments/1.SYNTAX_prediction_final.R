@@ -3,6 +3,42 @@ library(caret)
 library(PRROC)
 library(pROC)
 
+################# Find common indices between zero and test #################
+common_inds<-list()
+load('./Test_inds.Rda')
+load("./Whole_dataset.Rda")
+dataset<-dataset[!is.na(dataset$SYNTAX.SCORE),]
+library(dplyr)
+Wanted_test_sets<-function(test_count,test_zero,test_count_clinical,test_zero_clinical,dataset){
+  # Original row positions in the supplied dataset
+  original <- dataset %>%
+    mutate(.original_row = seq_len(nrow(dataset)))
+  preds<-colnames(test_count)
+  test_zero<-test_zero[!colnames(test_zero) %in% c('target')]
+  test_zero_clinical<-test_zero_clinical[!colnames(test_zero_clinical) %in% c('target')]
+  
+  zero_indices <- original %>%
+    semi_join(test_zero, by = names(test_zero_clinical)) %>%
+    pull(.original_row)
+  
+  
+  test_set_wanted<-dataset[zero_indices,]
+  test_set_wanted_count<-test_set_wanted[preds]
+  complete_rows <- complete.cases(test_set_wanted_count)
+  
+  
+  test_set_wanted_count<-test_set_wanted_count[complete_rows,]
+  test_set_wanted_zero<-test_zero[complete_rows,]
+  
+  
+  test_set_wanted_count_clinical<-test_set_wanted[complete_rows,colnames(test_count_clinical)]
+  
+  
+  test_set_wanted_zero_clinical<-test_set_wanted[complete_rows,colnames(test_zero_clinical)[!colnames(test_zero_clinical) %in% c('target')]]
+  
+  return(list(Test.zero.SNP=test_set_wanted_zero,Test.count.SNP=test_set_wanted_count,
+              Test.zero.Clinical=test_set_wanted_zero_clinical, Test.count.Clinical=test_set_wanted_count_clinical))
+}
 
 ##################### Zero-part ############################
 ###### load
@@ -15,6 +51,31 @@ train_clinical_ls_zero<-train_clinical_ls
 train_snp_ls_zero<-train_snp_ls
 test_clinical_ls_zero<-test_clinical_ls
 test_snp_ls_zero<-test_snp_ls
+
+###### load
+load('./Sensitivity_Analysis_Imputation/Positive_score_component/Train_clinical_count.Rda')
+load('./Sensitivity_Analysis_Imputation/Positive_score_component/Test_clinical_count.Rda')
+load('./Sensitivity_Analysis_Imputation/Positive_score_component/Train_snp_count.Rda')
+load('./Sensitivity_Analysis_Imputation/Positive_score_component/Test_snp_count.Rda')
+
+test_clinical_ls_zero_NEW<-list()
+test_snp_ls_zero_NEW<-list()
+test_clinical_ls_NEW<-list()
+test_snp_ls_NEW<-list()
+for(i in 1:10){
+  res<-Wanted_test_sets(test_snp_ls[[i]],test_snp_ls_zero[[i]],
+                        test_clinical_ls[[i]],test_clinical_ls_zero[[i]],dataset)
+  
+  
+  test_clinical_ls_zero_NEW[[i]]<-res$Test.zero.Clinical
+  test_snp_ls_zero_NEW[[i]]<-res$Test.zero.SNP
+  test_clinical_ls_NEW[[i]]<-res$Test.count.Clinical
+  test_snp_ls_NEW[[i]]<-res$Test.count.SNP
+}
+test_clinical_ls_zero<-test_clinical_ls_zero_NEW
+test_snp_ls_zero<-test_snp_ls_zero_NEW
+test_clinical_ls<-test_clinical_ls_NEW
+test_snp_ls<-test_snp_ls_NEW
 
 ### Prepare clinical sets
 Preprocessing_fnc<-function(clinical_train,clinical_test,snp_train,snp_test,target_col='target',factor_col_opt='One-hot',numerical_col_opt='None'){
@@ -181,11 +242,7 @@ count_regressor_low_snp<-regression_snp_model_low
 count_regressor_high_snp<-regression_snp_model_high
 
 
-###### load
-load('./Sensitivity_Analysis_Imputation/Positive_score_component/Train_clinical_count.Rda')
-load('./Sensitivity_Analysis_Imputation/Positive_score_component/Test_clinical_count.Rda')
-load('./Sensitivity_Analysis_Imputation/Positive_score_component/Train_snp_count.Rda')
-load('./Sensitivity_Analysis_Imputation/Positive_score_component/Test_snp_count.Rda')
+
 
 ### Prepare clinical sets
 Preprocessing_fnc<-function(clinical_train,clinical_test,snp_train,snp_test,target_col='target',factor_col_opt='One-hot',numerical_col_opt='None'){
@@ -337,39 +394,7 @@ for(i in 1:10){
 
 
 
-################# Find common indices between zero and test #################
-common_inds<-list()
-load('./Test_inds.Rda')
-load("./Whole_dataset.Rda")
-dataset<-dataset[!is.na(dataset$SYNTAX.SCORE),]
-library(dplyr)
-common_indices_fnc<-function(test_count,test_zero,dataset){
-  # Original row positions in the supplied dataset
-  original <- dataset %>%
-    mutate(.original_row = seq_len(nrow(dataset)))
-  
-  # Match using all columns in each subset
-  test_count<-test_count[!colnames(test_count) %in% c('Binary.SS')]
-  count_indices <- original %>%
-    semi_join(test_count, by = names(test_count)) %>%
-    pull(.original_row)
-  
-  test_zero<-test_zero[!colnames(test_zero) %in% c('target')]
-  zero_indices <- original %>%
-    semi_join(test_zero, by = names(test_zero)) %>%
-    pull(.original_row)
-  
-  common_indices <- intersect(count_indices, zero_indices)
-  
-  rows_count_wanted<-which(common_indices %in% count_indices)
-  test_count<-test_count[rows_count_wanted,]
-  
-  rows_zero_wanted<-which(common_indices %in% zero_indices)
-  test_zero<-test_zero[rows_zero_wanted,]
-  
-  
-  return(list(Count_inds=rows_count_wanted,Zero_inds=rows_zero_wanted))
-}
+
 
 ################## Rest with the common indices only ########################
 
@@ -503,17 +528,17 @@ for(opt in opt_arr){
     fold_arr<-c()
     for(jj in 1:10){
       
-      indices_wanted<-common_indices_fnc(test_clinical_ls[[jj]],test_clinical_ls_zero[[jj]],dataset)
+      #indices_wanted<-common_indices_fnc(test_clinical_ls[[jj]],test_clinical_ls_zero[[jj]],dataset)
       
 
       
                 
       
       clinical_zero<-test_clinical_ls_zero_processed[[jj]]
-      clinical_zero<-clinical_zero[indices_wanted$Zero_inds,]
+      #clinical_zero<-clinical_zero[indices_wanted$Zero_inds,]
       
       clinical_count<-test_clinical_ls_processed[[jj]]
-      clinical_count<-clinical_count[indices_wanted$Count_inds,]
+      #clinical_count<-clinical_count[indices_wanted$Count_inds,]
       
       
       ############### Zero part #######################
@@ -577,14 +602,14 @@ for(opt in opt_arr){
     fold_arr<-c()
     ae_snp<-c()
     for(jj in 1:10){
-      indices_wanted<-common_indices_fnc(test_clinical_ls[[jj]],test_clinical_ls_zero[[jj]],dataset)
+      #indices_wanted<-common_indices_fnc(test_clinical_ls[[jj]],test_clinical_ls_zero[[jj]],dataset)
       
       
       snp_zero<-test_snp_ls_zero_processed[[jj]]
-      snp_zero<-snp_zero[indices_wanted$Zero_inds,]
+      #snp_zero<-snp_zero[indices_wanted$Zero_inds,]
       
       snp_count<-test_snp_ls_processed[[jj]]
-      snp_count<-snp_count[indices_wanted$Count_inds,]
+      #snp_count<-snp_count[indices_wanted$Count_inds,]
       
       
       
