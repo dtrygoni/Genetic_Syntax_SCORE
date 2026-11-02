@@ -702,53 +702,14 @@ for(jj in 1:10){
 
   
   
-  ##### For boruta only ####
-  train_temp<-train_set_all
-  train_examine<-train_clinical_ls[[jj]]
-  full_with_id <- train_temp %>%
-    mutate(full_row = row_number())
-  
-  matched <- train_examine %>%
-    left_join(
-      full_with_id,
-      by = intersect(names(train_examine), names(train_temp))
-    )
-  inds<-matched$full_row
-  temp<-train_set_all[inds,]
-  temp1<-temp[colSums(is.na(temp))==0]
-  
-  cols_wanted<-colnames(temp1)
-  
-  
-  test_temp<-test_set_all
-  test_examine<-test_clinical_ls[[jj]]
-  full_with_id <- test_temp %>%
-    mutate(full_row = row_number())
-  
-  matched <- test_examine %>%
-    left_join(
-      full_with_id,
-      by = intersect(names(test_examine), names(test_temp))
-    )
-  inds<-matched$full_row
-  temp<-test_set_all[inds,]
-  temp1<-temp[colSums(is.na(temp))==0]
-  
-  cols_wanted_test<-colnames(temp1)
-  
-  cols_f<-intersect(cols_wanted,cols_wanted_test)
+
   ############### First step - Logistic Regression -> selected important features ########
   
   predictors_clinical<-setdiff(colnames(train_set_all)[clinical_cols],c('SYNTAX.SCORE','SYNTAX.Tertiles','Binary.SS'))
   predictors_snp<-colnames(train_set_all)[snp_cols[1]:ncol(train_set_all)]
 
   
-  #### Here for boruta inspection ####
-  cols_clinical<-intersect(predictors_clinical,cols_f)
-  cols_snp<-intersect(predictors_snp,cols_f)
-  
-  predictors_clinical<-cols_clinical
-  predictors_snp<-cols_snp
+
   #####################################
   
   

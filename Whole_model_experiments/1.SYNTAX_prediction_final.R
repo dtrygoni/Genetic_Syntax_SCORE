@@ -9,7 +9,7 @@ library(pROC)
 load('./Zero_non_zero_component/Train_clinical_zero.Rda')
 load('./Zero_non_zero_component/Test_clinical_zero.Rda')
 load('./Zero_non_zero_component/Train_snp_zero.Rda')
-load(',/Zero_non_zero_component/Test_snp_zero.Rda')
+load('./Zero_non_zero_component/Test_snp_zero.Rda')
 
 train_clinical_ls_zero<-train_clinical_ls
 train_snp_ls_zero<-train_snp_ls
