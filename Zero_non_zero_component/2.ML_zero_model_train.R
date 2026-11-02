@@ -92,18 +92,30 @@ preprocess_baked_structure<-function(data){
 snp_numeric_convert <-function(dataset,snp_columns,levels){
   dataset_no_snp<-dataset[! colnames(dataset) %in% snp_columns]
   dataset_snp<-dataset[colnames(dataset) %in% snp_columns]
-  for(snp in snp_columns){
-    levels_snp<-levels[[snp]]
-    if(length(levels_snp)==2){
-      level_0<-strsplit(levels_snp[1],split="-")[[1]]
-      level_1<-strsplit(levels_snp[2],split="-")[[1]]
-      dataset_snp[[snp]]<-as.factor(ifelse(dataset_snp[[snp]] %in% level_0,0,1))
-    }else{
-      level_0<-levels_snp[1]
-      level_1<-levels_snp[2]
-      dataset_snp[[snp]]<-as.factor(ifelse(dataset_snp[[snp]] %in% level_0,0,ifelse(dataset_snp[[snp]] %in% level_1,1,2)))
-    }
+  for (snp in snp_columns) {
+    levels_snp <- levels[[snp]]
+    genotype <- as.character(dataset_snp[[snp]])
     
+    # Keep missing or unrecognized genotypes as NA.
+    coded <- rep(NA_integer_, length(genotype))
+    
+    if (length(levels_snp) == 2L) {
+      level_0 <- strsplit(levels_snp[1], split = "-", fixed = TRUE)[[1]]
+      level_1 <- strsplit(levels_snp[2], split = "-", fixed = TRUE)[[1]]
+      
+      coded[!is.na(genotype) & genotype %in% level_0] <- 0L
+      coded[!is.na(genotype) & genotype %in% level_1] <- 1L
+      
+      dataset_snp[[snp]] <- factor(coded, levels = c(0, 1))
+      
+    } else if (length(levels_snp) == 3L) {
+      coded[!is.na(genotype) & genotype == levels_snp[1]] <- 0L
+      coded[!is.na(genotype) & genotype == levels_snp[2]] <- 1L
+      coded[!is.na(genotype) & genotype == levels_snp[3]] <- 2L
+      
+      dataset_snp[[snp]] <- factor(coded, levels = c(0, 1, 2))
+      
+    } 
   }
   
   df<-cbind(dataset_no_snp,dataset_snp)
