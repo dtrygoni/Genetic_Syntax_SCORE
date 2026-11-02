@@ -2,195 +2,209 @@
 
 R code and fitted model objects accompanying the study **“Predicting coronary artery disease severity through genomic profiling and machine learning modelling.”**
 
-The GEnetic SYNTAX Score (GESS) framework is an exploratory hierarchical machine-learning pipeline that combines clinical and laboratory predictors with candidate single-nucleotide polymorphisms (SNPs) to predict the presence and severity of coronary artery disease as represented by the SYNTAX score.
+The GEnetic SYNTAX Score (GESS) framework combines clinical and laboratory measurements with candidate single-nucleotide polymorphisms (SNPs) to predict coronary artery disease presence and severity, expressed as the SYNTAX score.
 
-> **Status and intended use:** This repository documents internally validated model development in a single-center cohort. The models have not undergone external or prospective clinical validation and are not a clinical decision-support tool. They must not be used to select treatment or guide patient care.
+The repository contains model development, cross-validation, component and complete-pipeline evaluation, missing-data sensitivity analyses, and linear mixed-effects (LME) comparisons of prediction errors.
 
-## Analytical framework
+## Prediction framework
 
-The pipeline contains three sequential prediction components:
+The hierarchical pipeline contains three stages:
 
-1. **Zero/non-zero component:** classifies SYNTAX score as 0 versus >0.
-2. **Positive-score severity classifier:** classifies patients predicted to have a positive score as low (<23) versus intermediate/high (≥23) complexity.
-3. **Stratum-specific regression:** applies the corresponding low- or intermediate/high-complexity regressor to generate the final SYNTAX-score prediction.
+1. **Zero/non-zero classification:** predicts a SYNTAX score of 0 versus >0.
+2. **Positive-score severity classification:** distinguishes low complexity (<23) from intermediate/high complexity (≥23).
+3. **Stratum-specific regression:** uses the low- or intermediate/high-complexity regressor to produce a positive-score estimate. The zero/non-zero classifier determines whether the final prediction is zero or the positive-score estimate.
 
-Two predictor configurations are compared using the same cross-validation partitions:
+Two predictor configurations are evaluated:
 
-- **Model A:** clinical and laboratory predictors.
-- **Model B:** the corresponding clinical and laboratory predictors plus SNP-derived predictors.
+- **Model A — Clinical:** clinical and laboratory predictors.
+- **Model B — Clinical + SNPs:** clinical and laboratory predictors together with SNP-derived predictors and pairwise SNP interactions.
 
-The primary evaluation uses pooled out-of-fold predictions from stratified 10-fold cross-validation. The repository also contains repeated cross-validation analyses and sensitivity analyses using fold-specific imputation and simpler logistic/linear models.
+The analyses use predefined outer folds to evaluate both configurations. Component-level performance and complete-pipeline performance are evaluated separately.
 
 ## Repository contents
 
-| Path | Purpose |
+| Path | Contents |
 |---|---|
-| `Main_model/` | Primary complete-case analysis: SNP quality control, preprocessing, feature selection, model fitting, component-level evaluation, complete-pipeline evaluation, calibration/decision-curve analyses, missingness summaries, and subgroup analyses. |
-| `Repeated_cross_validation/` | Ten repetitions of stratified 10-fold cross-validation, including saved fold indices and fitted fold-specific objects. |
-| `Sensitivity_Analysis_Imputation/` | Sensitivity analysis using fold-specific median imputation for continuous predictors and mode imputation for categorical/discrete predictors and SNPs. |
-| `Sensitivity_Analysis_SimpleModels/` | Sensitivity analysis using logistic-regression classifiers and linear-regression models as transparent comparators. |
-| `GESS_model/` | Fitted full-data model objects, preprocessing objects, predictor schema, and a prediction wrapper for structured new data. |
-| `Utils/` | Supporting SNP-level and performance-plotting functions. |
-| `sessionInfo_complete.txt` | R, operating-system, and installed-package information recorded for the repository. |
+| `Zero_non_zero_component/` | Fold-specific data preparation, feature selection, classifier training, ROC/PR evaluation, and calibration. |
+| `Positive_score_component/` | Positive-score data preparation, severity classifier and stratum-specific regressor training, and evaluation. |
+| `Whole_model_experiments/` | Combination of the prediction components and complete-pipeline evaluation. |
+| `Repeated_Cross_Validation/` | Repeated stratified cross-validation, repetition-specific fold indices and fitted objects, complete-pipeline evaluation, and feature-selection stability. |
+| `Sensitivity_Analysis_Imputation/` | Alternative analysis using training-derived median/mode imputation. |
+| `LME_experiments/` | Linear mixed-effects comparisons of prediction errors and diagnostic/estimated-marginal-mean plots. |
+| `Additional_analysis/` | Decision-curve and ROC plots, missingness summaries, SNP summaries, and subgroup analyses. |
+| `GESS_model/` | Fitted prediction objects, input schema, and the `GESS_prediction()` wrapper. |
+| `Test_inds.Rda` | Saved primary outer-test fold assignments. |
+| `Count_part.Rda` | Saved positive-score prediction results. |
+| `Full_model_results.Rda` | Saved complete-pipeline prediction results. |
+| `sessionInfo_complete.txt` | Recorded R environment and package information. |
 
-Saved `.Rda` files contain fitted models, fold assignments, preprocessing objects, feature selections, or intermediate analysis results. They do not constitute a public release of the participant-level development dataset.
+Saved `.Rda` files include fitted models, fold assignments, preprocessing objects, and analysis outputs. The participant-level development dataset is not included.
 
-## Data availability and privacy
+## Data and input requirements
 
-The participant-level clinical and genomic data are **not included** in this public repository. Unrestricted release is not permitted because the dataset contains sensitive health and genetic information and is subject to participant-consent, ethics, and data-protection restrictions.
+The development scripts load a restricted file named `Whole_dataset.Rda`, which must create an R object named `dataset`. It contains clinical predictors, SNP predictors, and observed SYNTAX outcomes. The scripts use the original variable names and coding, including `SYNTAX.SCORE`, `Binary.SS`, and `SYNTAX.Tertiles`.
 
-Accordingly:
+The participant-level clinical and genetic data are subject to consent, ethics, and data-protection restrictions. Reproduction with the original data requires authorized access through the responsible institution.
 
-- the public repository permits inspection of the analytical logic, model objects, seeds, and fold-specific procedures;
-- complete end-to-end regeneration of the reported results requires authorized access to the original data;
-- access requests, if permitted under the study governance framework, must be reviewed by the responsible institution and ethics/data-access authorities.
+The fitted-model input variables and genotype coding are described in [`GESS_model/Dataset_schema.txt`](GESS_model/Dataset_schema.txt).
 
-The expected variables and coding for the fitted prediction implementation are described in `GESS_model/Dataset_schema.txt`. Researchers receiving controlled access should retain the original variable names and factor/genotype coding.
+## Software requirements
 
-## Software environment
-
-The project is implemented in R. The exact environment recorded for this repository is reported in `sessionInfo_complete.txt`. The principal packages used across the analysis include:
-
-```r
-c(
-  "Boruta", "caret", "DescTools", "dplyr", "ggplot2",
-  "kernelshap", "missForestPredict", "MLmetrics", "mltools",
-  "pROC", "PRROC", "precrec", "randomForest", "recipes",
-  "shapviz", "SNPassoc", "tidyr", "xgboost"
-)
-```
-
-Package requirements differ across scripts. Install missing packages before running the relevant analysis. For example:
+The project is implemented in R. Consult [`sessionInfo_complete.txt`](sessionInfo_complete.txt) for the recorded software environment. Dependencies vary by script; the main packages include:
 
 ```r
 packages <- c(
-  "Boruta", "caret", "dplyr", "ggplot2", "MLmetrics",
-  "pROC", "PRROC", "randomForest", "recipes", "SNPassoc", "tidyr"
+  "Boruta", "caret", "dplyr", "tidyr", "tibble", "ggplot2",
+  "randomForest", "xgboost", "PRROC", "precrec", "mltools",
+  "pROC", "SNPassoc", "recipes", "MLmetrics", "missForestPredict",
+  "reticulate", "rms", "CalibrationCurves", "tidyverse",
+  "reshape2", "lme4", "lmerTest", "patchwork", "performance",
+  "emmeans", "ggExtra"
 )
 
-to_install <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
-if (length(to_install)) install.packages(to_install, dependencies = TRUE)
+missing_packages <- packages[
+  !vapply(packages, requireNamespace, logical(1), quietly = TRUE)
+]
+if (length(missing_packages)) install.packages(missing_packages)
 ```
 
-Bioconductor packages, if required for the bioinformatic analyses, should be installed through `BiocManager`.
+Install any additional packages requested by the particular scripts being run.
 
-## Reproducing the development analyses
+## Analysis workflow
 
-### Important portability note
+Run the development analyses from the repository root so that paths beginning with `./` resolve correctly. Configure any script-specific paths and create the output directories referenced by `save()` calls. The saved fold assignments must correspond to the row order of the analytical dataset after the script's initial outcome filtering.
 
-The analysis scripts are preserved as research code and currently contain absolute Windows paths referring to the authors’ local analysis directories. They are therefore **not directly portable after cloning**. Before running them with an authorized copy of the data:
+### 1. Zero/non-zero component
 
-1. Replace absolute paths such as `C:/Users/.../GESS_experiments_code/` with a project-root variable or relative paths.
-2. Store the restricted analytical dataset outside version control.
-3. Confirm that loading the source file creates an R object named `dataset` with the variables and coding expected by the scripts.
-4. Create separate output directories or modify `save()` calls as required.
-5. Run the pipeline in a clean R session and retain the generated log and session information.
+Run the following scripts in order:
 
-The primary scripts expect an R data file commonly referenced as `Whole_dataset.Rda`; this restricted file is not included.
+1. [`1.Cross_validation_construction.R`](Zero_non_zero_component/1.Cross_validation_construction.R): constructs fold-specific training/test datasets and performs SNP processing, univariate screening, complete-case filtering, and Boruta selection.
+2. [`2.ML_zero_model_train.R`](Zero_non_zero_component/2.ML_zero_model_train.R): constructs SNP interactions, applies preprocessing, tunes and fits classifiers, and saves fold-specific outputs.
+3. [`3.CI_ROC.R`](Zero_non_zero_component/3.CI_ROC.R): evaluates classifier predictions, including pooled ROC/PR performance and a paired permutation comparison of AUCs.
+4. [`4.Calibration_with_RMS.R`](Zero_non_zero_component/4.Calibration_with_RMS.R): evaluates calibration.
 
-### Primary analysis
+### 2. Positive-score component
 
-The primary analysis is organized into the following stages:
+Run:
 
-1. **Outer-fold construction and zero/non-zero component**
-   - `Main_model/Zero_part_classification/Cross_validation_construction.R`
-   - `Main_model/Zero_part_classification/ML_zero_model_train.R`
-   - `Main_model/Zero_part_classification/Preparation_before_predictions.R`
-   - `Main_model/Zero_part_classification/CI_ROC.R`
+1. [`1.CV_count_classifier.R`](Positive_score_component/1.CV_count_classifier.R): prepares positive-score training/test datasets and selects predictors.
+2. [`2.ML_components_train.R`](Positive_score_component/2.ML_components_train.R): trains the severity classifier and the low- and intermediate/high-complexity regressors.
+3. [`3.Risk_Classifier_Evaluation_CI_ROC.R`](Positive_score_component/3.Risk_Classifier_Evaluation_CI_ROC.R): evaluates severity classification.
+4. [`4.Low_Risk_Regression_Evaluation.R`](Positive_score_component/4.Low_Risk_Regression_Evaluation.R) and [`5.High_Risk_regression_Evaluation.R`](Positive_score_component/5.High_Risk_regression_Evaluation.R): evaluate the stratum-specific regressors.
+5. [`6.Count_part_prediction.R`](Positive_score_component/6.Count_part_prediction.R): combines severity classification and regression predictions and writes `Count_part.Rda`.
 
-2. **Positive-score severity component**
-   - `Main_model/Count_part_regression/CV_count_classifier.R`
-   - `Main_model/Count_part_regression/Classifiers_model_train.R`
-   - the component-specific evaluation scripts in the same directory
+### 3. Complete hierarchical model
 
-3. **Complete hierarchical pipeline**
-   - scripts in `Main_model/Whole_model_experiments/`
+Run [`Whole_model_experiments/1.SYNTAX_prediction_final.R`](Whole_model_experiments/1.SYNTAX_prediction_final.R) after producing the component models and fold-specific datasets. This script combines the zero/non-zero classifier, severity classifier, and regressors, and writes `Full_model_results.Rda`.
 
-4. **Additional analyses**
-   - `Main_model/Brier_Calibration_DCA_ConfusionMatrices_ZeroPart.R`
-   - `Main_model/Subgroup_analysis_of_complete_pipeline.R`
-   - `Main_model/Missing_values_predictors.R`
-   - `Main_model/Comparison_simple_with_RF_fullmodel.R`
+### Fold-specific processing and threshold selection
 
-5. **Full-data refit for exploratory interpretation and fitted prediction objects**
-   - scripts in `Main_model/Full_set_models/`
+The development scripts contain the following processing stages:
 
-Full-data refits are used for fitted-model construction and exploratory interpretation; internally validated performance estimates are obtained from out-of-fold predictions rather than from the full-data refit.
+- HWE testing with FDR-adjusted p-values and minor-allele-frequency filtering.
+- LD assessment using squared correlations and reduction of correlated SNP groups using training-set associations.
+- Training-derived inheritance-model selection and genotype coding.
+- Univariate screening at p < 0.10 and complete-case filtering before Boruta.
+- Boruta selection for the zero/non-zero and positive-score components.
+- Pairwise categorical SNP interactions among retained SNPs.
+- One-hot encoding and min–max scaling estimated from training data.
+- Inner four-fold cross-validation for Random Forest hyperparameter tuning.
 
-### Repeated cross-validation
+The revised `Optimal_threshold()` function performs an additional four-fold procedure within the outer training data, holding the selected RF hyperparameters fixed. It pools the held-out probabilities, selects the Youden-index threshold, and returns the largest finite optimal threshold when there is a tie. This calculation runs in memory. The final outer-training classifier supplies the probabilities to which that threshold is applied during test prediction.
 
-`Repeated_cross_validation/Created_repeated_crossvalidation_inds.R` uses `caret::createMultiFolds()` with `k = 10`, `times = 10`, and seed 123 to construct repeated stratified folds. The remaining top-level scripts in `Repeated_cross_validation/` fit and evaluate the component and complete-pipeline models across those partitions. The `Fold1/`–`Fold10/` directories contain repetition-specific indices and fitted objects.
+## Repeated cross-validation
 
-### Missing-data sensitivity analysis
+[`Repeated_Cross_Validation/1.Created_repeated_crossvalidation_inds.R`](Repeated_Cross_Validation/1.Created_repeated_crossvalidation_inds.R) uses `caret::createMultiFolds()` with `k = 10`, `times = 10`, and seed 123.
 
-`Sensitivity_Analysis_Imputation/` mirrors the principal pipeline while replacing complete-case deletion with fold-specific imputation. Imputation parameters are estimated from each outer training fold and then applied unchanged to its corresponding test fold. Continuous predictors are imputed using the training-fold median; categorical/discrete predictors and SNPs are imputed using the training-fold mode.
+The remaining numbered scripts prepare data, fit components, evaluate positive-score and complete-pipeline predictions, and summarize feature-selection stability. The directories `Fold1/` through `Fold10/` represent repetitions, each containing its own ten outer folds. Set the repetition variable used by each script before running it, and match any differently capitalized directory strings to the checkout on case-sensitive systems.
 
-### Simpler-model sensitivity analysis
+## Missing-data sensitivity analysis
 
-`Sensitivity_Analysis_SimpleModels/` evaluates conventional logistic-regression classifiers and linear-regression models using the same analytical structure as the principal pipeline.
+`Sensitivity_Analysis_Imputation/` mirrors the component and complete-pipeline workflow. Its imputation helper estimates replacement values from the outer training data and applies them to the corresponding test data:
 
-## Preprocessing and leakage control
+- median imputation for continuous numeric variables;
+- mode imputation for categorical and discrete variables, including SNP predictors.
 
-For internally validated analyses, supervised preprocessing is performed within the outer training data. This includes genotype quality-control decisions, inheritance-mode selection, LD-based reduction with outcome-informed selection among correlated variants, univariate screening, Boruta feature selection, SNP-interaction construction, preprocessing, inner-cross-validation tuning, and classification-threshold selection. Learned transformations are then applied to the corresponding held-out fold. Model A and Model B use identical outer test folds, and paired comparisons use participants with predictions available from both models.
+The helper returns imputed datasets, imputation values, and a summary of the methods used. Consult its arguments for excluded variables and the treatment of discrete numeric variables.
 
-The primary analysis uses complete cases for the fold-specific selected predictors. The imputation sensitivity analysis instead estimates median/mode values exclusively from the training fold.
+## Linear mixed-effects comparison of prediction errors
+
+[`LME_experiments/LME Performance Evaluation.R`](LME_experiments/LME%20Performance%20Evaluation.R) compares the predictive models using square-root-transformed absolute errors.
+
+### Input table
+
+The script loads `Count_part.Rda` and expects a long-format object named `res_df`. Prepare that object from the prediction results before fitting the models if the loaded file contains only a prediction table named `res`.
+
+| Column | Meaning |
+|---|---|
+| `ID` | Participant identifier shared by the paired Model A and Model B observations. |
+| `Model` | Predictive-model configuration, represented as a factor. |
+| `Risk` | Observed SYNTAX complexity stratum, represented as a factor. |
+| `Fold` | Outer fold; represent it as a factor for categorical fold adjustment. |
+| `AE` | Absolute error, calculated as `abs(observed_score - predicted_score)`. |
+
+Each participant contributes one error for each predictive model being compared. Preserve the same participant identifiers and fold assignments across the paired observations.
+
+### Model specification
+
+The reduced and interaction models are fitted by maximum likelihood:
+
+```r
+model_reduced <- lmerTest::lmer(
+  sqrt(AE) ~ Model + Risk + Fold + (1 | ID),
+  data = res_df, REML = FALSE
+)
+
+model_full <- lmerTest::lmer(
+  sqrt(AE) ~ Model * Risk + Fold + (1 | ID),
+  data = res_df, REML = FALSE
+)
+
+anova(model_reduced, model_full)
+```
+
+`Model`, `Risk`, and `Fold` enter as fixed effects. The participant random intercept accounts for the paired errors. The Model × Risk interaction assesses whether the difference between predictive configurations varies across complexity strata.
+
+The script compares the models using a likelihood-ratio test and then fits the interaction model using REML for final estimation. It reports coefficient summaries and fixed-effect tests, and produces residual-versus-fitted, residual Q–Q, scale–location, and random-intercept Q–Q plots.
+
+Estimated marginal means are calculated using `emmeans(model_interaction, ~ Model | Risk)`, followed by within-stratum pairwise comparisons with the requested Tukey adjustment. These comparisons are on the square-root AE scale. The script also uses `regrid(..., transform = "response")` to display back-transformed estimated marginal means and confidence intervals; these should be distinguished from raw arithmetic mean absolute errors.
+
+The supplied plotting labels cover the two positive-score strata. For complete-pipeline analysis, use the corresponding long-format complete-pipeline errors and adapt the risk labels to include zero, low, and intermediate/high SYNTAX scores.
+
+## Additional analyses
+
+`Additional_analysis/` contains scripts for decision-curve analysis, missing-predictor summaries, SNP QC summaries, SNP table construction, ROC plotting, and subgroup evaluation of the complete pipeline. Run these after generating the prediction outputs they load.
 
 ## Using the fitted GESS model
 
-The repository contains a fitted hierarchical model and its preprocessing objects in `GESS_model/`. The wrapper currently resolves model-object paths relative to that directory, so run it with `GESS_model` as the working directory:
+The prediction wrapper resolves fitted-object paths relative to `GESS_model/`:
 
 ```r
 setwd("GESS_model")
 source("GESS_prediction_source_code.R")
 
-# new_data must follow Dataset_schema.txt exactly.
-# Do not include direct identifiers.
+# new_data must follow Dataset_schema.txt.
 predicted_syntax <- GESS_prediction(new_data)
 ```
 
-### Input requirements
+Supply one row per participant, with the exact predictor names and genotype encodings described in the schema. The wrapper applies the saved component objects and returns predictions for eligible rows. Preserve an external row key when joining predictions back to a source dataset.
 
-- One row per participant.
-- Column names and encodings must match `GESS_model/Dataset_schema.txt`.
-- SNP genotypes must use the allele-pair strings and levels documented in the schema.
-- Required predictors must be present.
-- Rows with missing values in predictors required by either component are excluded by the current wrapper; impute or otherwise resolve missing values before prediction if retaining every row is necessary.
+## Reproducibility and interpretation
 
-The function returns rounded predicted SYNTAX scores for eligible complete rows. Preserve an external, nonidentifying row key if predictions must be joined back to a source table.
+The repository supplies source code, seeds, fold indices, and saved model objects. Regenerating results requires the authorized development dataset, the expected R environment, and the intermediate files produced by the preceding scripts. Saved outputs should be regenerated after changes to preprocessing or model development.
 
-The fitted model is supplied for research transparency only. Its availability does not establish external validity, calibration in new settings, clinical utility, or readiness for deployment.
+Performance quantities are defined in the individual evaluation scripts. These include classification discrimination, regression errors, pooled and fold-level summaries, resampling-based comparisons, calibration analyses, and LME comparisons of paired errors. Consult the manuscript and supplementary material for final numerical results and the study's analysis definitions.
 
-## Validation and reported quantities
-
-The analysis code includes procedures for:
-
-- pooled out-of-fold AUC-ROC and regression-error estimates;
-- fold-level performance summaries;
-- participant-level bootstrap confidence intervals;
-- paired permutation comparisons of classifier predictions;
-- calibration, Brier score, confusion-matrix measures, and exploratory decision-curve analysis for the zero/non-zero classifier;
-- complete-pipeline and clinically relevant subgroup analyses;
-- feature-selection frequency and exploratory SHAP analyses.
-
-Refer to the accompanying manuscript and supplementary material for the prespecified definitions, final numerical estimates, and interpretation. Results may vary across pipeline components and should not be interpreted as uniformly demonstrating incremental clinical value from SNP information.
-
-## Reproducibility notes
-
-- Random seed 123 is specified in the principal fold-generation and multiple analysis scripts.
-- Saved fold-index and model objects are included where available.
-- `sessionInfo_complete.txt` documents the environment in which the repository information was generated. If this differs from the historical environment used for a particular analysis, it should not be interpreted as a retrospective lockfile for that earlier run.
-- Because the original data are restricted and several scripts require path configuration, this release provides **code and model transparency**, not unrestricted one-command reproduction of the study.
+GESS is a research model developed with internal validation. External and prospective validation are required before clinical application.
 
 ## Citation
 
-If you use or adapt this repository, please cite the associated publication when available:
-
-> *Predicting coronary artery disease severity through genomic profiling and machine learning modelling.* ClinicalTrials.gov identifier: NCT03150680. [Full citation and DOI to be added after publication.]
+**Predicting coronary artery disease severity through genomic profiling and machine learning modelling.** ClinicalTrials.gov identifier: NCT03150680. Full publication details and DOI will be added when available.
 
 ## License
 
-This repository is distributed under the GNU General Public License version 2; see `LICENSE`.
+Distributed under the GNU General Public License version 2. See [`LICENSE`](LICENSE).
 
-## Contact and issues
+## Contact
 
-For questions about the code, open a GitHub issue. Requests involving the restricted participant-level dataset must follow the study’s institutional data-access and ethics procedures and should not include participant information in a public issue.
+Use GitHub issues for code questions. Requests for restricted participant-level data should follow the responsible institution's data-access procedures.
