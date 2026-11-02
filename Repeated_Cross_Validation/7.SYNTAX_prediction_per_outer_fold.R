@@ -569,7 +569,7 @@ for(opt in opt_arr){
       predictions_clinical<-c(predictions_clinical,predictions)
       
       
-      target<-test_clinical_ls[[jj]]$SYNTAX.SCORE[indices_wanted$Count_inds]
+      target<-test_clinical_ls[[jj]]$SYNTAX.SCORE
       target_clinical<-c(target_clinical,target)
       
       ae<-mean(abs(target-predictions))
@@ -647,7 +647,7 @@ for(opt in opt_arr){
       predictions_snp<-c(predictions_snp,predictions)
       
       
-      target<-test_snp_ls[[jj]]$SYNTAX.SCORE[indices_wanted$Count_inds]
+      target<-test_snp_ls[[jj]]$SYNTAX.SCORE
       target_snp<-c(target_snp,target)
       
       ae<-median(abs(target-predictions))

@@ -533,7 +533,7 @@ for(opt in opt_arr){
     fold_arr<-c()
     for(jj in 1:10){
       
-      indices_wanted<-common_indices_fnc(test_clinical_ls[[jj]],test_clinical_ls_zero[[jj]],dataset)
+      #indices_wanted<-common_indices_fnc(test_clinical_ls[[jj]],test_clinical_ls_zero[[jj]],dataset)
       
       clinical_zero<-test_clinical_ls_zero_processed[[jj]]
       #clinical_zero<-clinical_zero[indices_wanted$Zero_inds,]
@@ -566,7 +566,7 @@ for(opt in opt_arr){
       predictions_clinical<-c(predictions_clinical,predictions)
       
       
-      target<-test_clinical_ls[[jj]]$SYNTAX.SCORE[indices_wanted$Count_inds]
+      target<-test_clinical_ls[[jj]]$SYNTAX.SCORE
       target_clinical<-c(target_clinical,target)
       
       ae<-mean(abs(target-predictions))
@@ -636,7 +636,7 @@ for(opt in opt_arr){
       predictions_snp<-c(predictions_snp,predictions)
       
       
-      target<-test_snp_ls[[jj]]$SYNTAX.SCORE[indices_wanted$Count_inds]
+      target<-test_snp_ls[[jj]]$SYNTAX.SCORE
       target_snp<-c(target_snp,target)
       
       ae<-median(abs(target-predictions))
